@@ -1,6 +1,6 @@
-# ChefAI – AI-Driven Recipe and Diet Planning Assistant
+# FlavourAI – AI-Driven Recipe and Diet Planning Assistant
 
-**ChefAI** is an intelligent web-based application designed to help users discover personalized recipes and create balanced diet plans effortlessly.  
+**FlavourAI** is an intelligent web-based application designed to help users discover personalized recipes and create balanced diet plans effortlessly.  
 By leveraging **Artificial Intelligence**, the app analyzes available ingredients, dietary goals, and health preferences to suggest nutritious and delicious meal options for breakfast, lunch, and dinner.
 
 ---
@@ -33,7 +33,7 @@ This app is especially helpful for:
 ---
 
 ## 🛠️ Tech Stack
-- **Frontend:** React.js / Tailwind CSS  
+- **Frontend:** Next.js / Tailwind CSS  
 - **Backend:** Node.js / Express.js  
 - **Database:** MongoDB / Firebase  
 - **AI Integration:** OpenAI API or custom ML model for recipe generation and calorie analysis  
@@ -50,7 +50,7 @@ This app is especially helpful for:
 ---
 
 ## 👥 Contributors
-- **Jatin Pathania** – Project Lead / Full-Stack Developer  
+- **Jatin Pathania** – Full-Stack Developer  
 - **Kumar Vaibhav** - Full-Stack Developer
 
 ---
@@ -61,4 +61,4 @@ This project is open-source and available under the **MIT License**.
 ---
 
 ### ✨ “Cook Smart. Eat Smart. Live Healthy.”  
-ChefAI – Your personal AI Chef & Nutrition Assistant.
+FlavourAI – Your personal AI Chef & Nutrition Assistant.
