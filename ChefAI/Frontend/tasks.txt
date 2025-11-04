@@ -1,1 +1,5 @@
-1 install redux
+1. git status
+2. git add "filename"
+3. git commit -m "changed css for this file"
+4. git pull
+5. git push
