@@ -6,6 +6,9 @@
 
 
 
+
+
+//Dependencies
 npx shadcn@latest init ( and installed it's components)
 npm i framer-motion
 npm i lucide-react (for icons)
