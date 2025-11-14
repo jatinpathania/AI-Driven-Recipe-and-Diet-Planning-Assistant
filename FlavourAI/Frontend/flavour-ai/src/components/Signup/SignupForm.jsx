@@ -41,8 +41,7 @@ export default function SignupForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-md mx-auto p-4 w-full">
-      {/* Name */}
+    <form onSubmit={handleSubmit} className="w-full">
       <div className="flex flex-col space-y-2 mb-3">
         <input
           id="name"
@@ -51,26 +50,23 @@ export default function SignupForm() {
           placeholder="Full Name"
           value={form.name}
           onChange={handleChange}
-          className="border rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-green-500 border-gray-600 placeholder:text-xs"
+          className="border rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-green-500 border-gray-200 placeholder:text-xs  text-black"
           required
         />
       </div>
-
-      {/* Email */}
       <div className="flex flex-col space-y-2 mb-3">
-        <input
-          id="email"
-          name="email"
-          type="email"
-          placeholder="Email"
-          value={form.email}
-          onChange={handleChange}
-          className="border rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-green-500 border-gray-600 placeholder:text-xs"
-          required
-        />
-      </div>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            placeholder="Email"
+            value={form.email}
+            onChange={handleChange}
+            className=" border rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-green-500 border-gray-200 placeholder:text-xs  text-black"
+            required
+          />
+        </div>
 
-      {/* Password */}
       <div className="relative mb-3">
         <input
           id="password"
@@ -79,7 +75,7 @@ export default function SignupForm() {
           placeholder="Password"
           value={form.password}
           onChange={handleChange}
-          className="w-full border rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-green-500 border-gray-600 placeholder:text-xs"
+          className="w-full border rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-green-500 border-gray-200 placeholder:text-xs  text-black"
           required
           minLength={6}
         />
@@ -93,7 +89,6 @@ export default function SignupForm() {
         </button>
       </div>
 
-      {/* Confirm Password */}
       <div className="relative mb-3">
         <input
           id="confirmPassword"
@@ -102,32 +97,31 @@ export default function SignupForm() {
           placeholder="Confirm Password"
           value={form.confirmPassword}
           onChange={handleChange}
-          className="w-full border rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-green-500 border-gray-600 placeholder:text-xs"
+          className="w-full border rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-green-500 border-gray-200 placeholder:text-xs  text-black"
           required
           minLength={6}
         />
       </div>
 
-      {/* Error */}
       {error && <p className="text-red-500 text-xs text-center mb-2">{error}</p>}
 
-      {/* Signup Button */}
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2 transition disabled:opacity-60"
-      >
-        {loading ? "Creating account..." : "Sign Up"}
-      </button>
+      
+       <button
+          type="submit"
+          disabled={loading}
+          
+          className="w-full relative px-6 py-2 rounded-full text-white font-medium 
+           bg-gradient-to-b from-[#3a3a3a] to-[#1e1e1e] border border-[#555555]/30 shadow-[inset_0_1px_0_#ffffff1a,0_2px_4px_rgba(0,0,0,0.5)] hover:from-[#4a4a4a] hover:to-[#222222] active:scale-[0.98] transition-all duration-200"
+        >
+          {loading ? "Creating account..." : "Sign Up"}
+        </button>
 
-      {/* Footer */}
       <p className="text-center text-xs text-gray-400 mt-3">
         Already have an account?{" "}
         <a href="/login" className="text-[#06c86c] hover:underline font-medium">
           Login
         </a>
       </p>
-      //TODO Make a Google ,Github and Mobile Number signup auth part
     </form>
   )
 }

@@ -8,7 +8,6 @@
   
   return (
     <form onSubmit={handleSubmit} className="max-w-md mx-auto p-4 w-full">
-      {/* Name */}
       <div className="flex flex-col space-y-2 mb-3">
         <input
           id="name"
@@ -22,7 +21,7 @@
         />
       </div>
 
-      {/* Email */}
+      
       <div className="flex flex-col space-y-2 mb-3">
         <input
           id="email"
@@ -36,7 +35,7 @@
         />
       </div>
 
-      {/* Password */}
+      
       <div className="relative mb-3">
         <input
           id="password"
@@ -59,7 +58,7 @@
         </button>
       </div>
 
-      {/* Confirm Password */}
+      
       <div className="relative mb-3">
         <input
           id="confirmPassword"
@@ -74,10 +73,8 @@
         />
       </div>
 
-      {/* Error */}
-      {error && <p className="text-red-500 text-xs text-center mb-2">{error}</p>}
+  {error && <p className="text-red-500 text-xs text-center mb-2">{error}</p>}
 
-      {/* Signup Button */}
       <button
         type="submit"
         disabled={loading}
@@ -86,7 +83,6 @@
         {loading ? "Creating account..." : "Sign Up"}
       </button>
 
-      {/* Footer */}
       <p className="text-center text-xs text-gray-400 mt-3">
         Already have an account?{" "}
         <a href="/login" className="text-[#06c86c] hover:underline font-medium">
