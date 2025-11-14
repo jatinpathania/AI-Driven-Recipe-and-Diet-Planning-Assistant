@@ -13,3 +13,4 @@ npx shadcn@latest init ( and installed it's components)
 npm i framer-motion
 npm i lucide-react (for icons)
 npm install next-auth
+npm install next-themes
