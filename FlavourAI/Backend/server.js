@@ -1,6 +1,7 @@
 const express = require("express")
 const dotenv= require('dotenv')
 const cors= require('cors')
+const jwt= require('jsonwebtoken')
 const PORT= process.env.PORT || 3000;
 const connectDB= require('./db/connectDB')
 const recipeRouters= require('./Routes/recipeRoutes.js')
