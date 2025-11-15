@@ -1,7 +1,8 @@
   "use client"
-  import { useState } from "react"
+  import { useState, useEffect } from "react"
   import { useRouter } from "next/navigation"
   import { Eye,EyeOff } from "lucide-react"
+  import { motion, AnimatePresence } from "framer-motion"
 
   export default function LoginForm() {
     const router = useRouter()
@@ -9,6 +10,16 @@
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
     const [showPassword, setShowPassword] = useState(false)
+    const [currentPlaceholder, setCurrentPlaceholder] = useState(0)
+
+    const placeholders = ['Email', 'Username']
+
+    useEffect(() => {
+      const interval = setInterval(() => {
+        setCurrentPlaceholder(prev => (prev + 1) % placeholders.length)
+      }, 2000)
+      return () => clearInterval(interval)
+    }, [])
 
     const handleChange = (e) => {
       const { name, value } = e.target
@@ -54,16 +65,34 @@
         
 
   <div className="flex flex-col space-y-2 mb-3">
-          <input
-            id="email"
-            name="email"
-            type="email"
-            placeholder="Email"
-            value={form.email}
-            onChange={handleChange}
-            className=" border rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-green-500 border-gray-200 placeholder:text-xs  text-black"
-            required
-          />
+          <div className="relative">
+            <input
+              id="email"
+              name="email"
+              type="email"
+              placeholder=""
+              value={form.email}
+              onChange={handleChange}
+              className="border rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-green-500 border-gray-200 text-black w-full"
+              required
+            />
+            {!form.email && (
+              <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                <AnimatePresence mode="wait">
+                  <motion.span
+                    key={currentPlaceholder}
+                    initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
+                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
+                    transition={{ duration: 0.4, ease: "easeInOut" }}
+                    className="text-xs text-gray-400"
+                  >
+                    {placeholders[currentPlaceholder]}
+                  </motion.span>
+                </AnimatePresence>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-col space-y-2 mb-3">

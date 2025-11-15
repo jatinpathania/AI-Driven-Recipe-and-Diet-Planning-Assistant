@@ -47,6 +47,18 @@ export default function SignupForm() {
           id="name"
           name="name"
           type="text"
+          placeholder="Username"
+          value={form.name}
+          onChange={handleChange}
+          className="border rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-green-500 border-gray-200 placeholder:text-xs  text-black"
+          required
+        />
+      </div>
+      <div className="flex flex-col space-y-2 mb-3">
+        <input
+          id="name"
+          name="name"
+          type="text"
           placeholder="Full Name"
           value={form.name}
           onChange={handleChange}
