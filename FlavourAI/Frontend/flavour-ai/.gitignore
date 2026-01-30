@@ -20,6 +20,10 @@
 # production
 /build
 
+# lock files (keep only package-lock.json for npm)
+yarn.lock
+pnpm-lock.yaml
+
 # misc
 .DS_Store
 *.pem

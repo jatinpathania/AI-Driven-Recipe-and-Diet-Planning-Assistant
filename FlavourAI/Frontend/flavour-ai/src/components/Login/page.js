@@ -3,7 +3,7 @@ import LoginForm from "./LoginForm"
 import Header from "@/components/Header/Header"
 import Link from "next/link"
 import Image from "next/image"
-import FormCard from "@/components/ui/FormCard"
+import FormCard from "@/utils/ui/FormCard"
 
 export default function LoginPage() {
   return (
