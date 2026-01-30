@@ -2,8 +2,8 @@
 import SignupForm from "./SignupForm"
 import Link from "next/link"
 import Image from "next/image"
-import Container from "@/components/ui/Container"
-import FormCard from "@/components/ui/FormCard"
+import Container from "@/utils/ui/Container"
+import FormCard from "@/utils/ui/FormCard"
 
 export default function SignupPage() {
   return (

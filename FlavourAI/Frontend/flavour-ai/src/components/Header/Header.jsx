@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { UserCircle2, Menu, X, Sparkles } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import ProfileMenuButton from "../ui/ProfileMenuButton"
+import ProfileMenuButton from "../../utils/ui/ProfileMenuButton"
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
