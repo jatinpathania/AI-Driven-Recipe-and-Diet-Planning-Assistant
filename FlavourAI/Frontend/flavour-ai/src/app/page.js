@@ -1,10 +1,6 @@
 "use client"
-import Home from "@/components/Home/Home"
+import Home from "@/components/Home/NewHome"
 
 export default function HomePage() {
-  return (
-    <div>
-      <Home />
-    </div>
-  )
+  return <Home />
 }

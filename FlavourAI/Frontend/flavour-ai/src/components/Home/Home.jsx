@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Send, UserCircle2, X, ChefHat, Calendar, Sparkles } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Header from "@/components/Header/Header"
-import Container from "@/utils/ui/Container"
+import Container from "@/components/ui/Container"
 import Footer from '@/components/Footer/Footer'
 import Link from 'next/link'
 

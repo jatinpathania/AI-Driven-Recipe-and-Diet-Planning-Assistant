@@ -1,0 +1,7 @@
+# Credentials / Secrets
+LoginCredentials.txt
+.env
+.env.*
+
+# IDE
+.vscode/

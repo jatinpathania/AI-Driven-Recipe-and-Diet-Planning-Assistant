@@ -1,40 +1,91 @@
-const mongoose= require('mongoose')
+const mongoose = require('mongoose');
 
-const recipeSchema= mongoose.Schema(
+const recipeSchema = mongoose.Schema(
     {
-        recipeName:{
+        recipeName: {
             type: String,
             required: [true, "Please add a recipe name"],
         },
-        description:{
+        description: {
             type: String,
             required: false,
         },
-        ingredients:{
+        ingredients: {
             type: [String],
-            required:[ true, "Ingredients list is required"],
+            required: [true, "Ingredients list is required"],
         },
-        instructions:{
+        instructions: {
             type: [String],
-            required:[ true, "Instructions are required" ]
+            required: [true, "Instructions are required"]
         },
-        nutritionSummary:{
+        nutritionSummary: {
             type: String,
             required: false
         },
-
+        imageUrl: {
+            type: String,
+            default: ''
+        },
+        imageId: {
+            type: String,
+            default: ''
+        },
         userId: {
             type: mongoose.Schema.Types.ObjectId,
             required: false,
             ref: 'User'
         },
-        originalPrompt:{
+        originalPrompt: {
             type: String,
             required: false,
+        },
+        time: {
+            type: Number, // in minutes
+            required: false,
+            default: 30
+        },
+        servings: {
+            type: Number,
+            required: false,
+            default: 4
+        },
+        calories: {
+            type: Number,
+            required: false,
+            default: 0
+        },
+        difficulty: {
+            type: String,
+            enum: ['Easy', 'Medium', 'Hard'],
+            default: 'Medium'
+        },
+        tags: {
+            type: [String],
+            default: []
+        },
+        protein: {
+            type: Number, // in grams
+            required: false,
+            default: 0
+        },
+        carbs: {
+            type: Number, // in grams
+            required: false,
+            default: 0
+        },
+        fat: {
+            type: Number, // in grams
+            required: false,
+            default: 0
+        },
+        emoji: {
+            type: String,
+            default: '🍽️'
         }
     },
     {
         timestamps: true,
     }
-)
-module.exports= mongoose.model('Recipe', recipeSchema);
+);
+
+module.exports = mongoose.model('Recipe', recipeSchema);
