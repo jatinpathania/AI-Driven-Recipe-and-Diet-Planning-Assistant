@@ -1,7 +1,78 @@
-# Credentials / Secrets
-LoginCredentials.txt
-.env
-.env.*
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
 
-# IDE
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+/dist
+
+# lock files (keep only package-lock.json for npm)
+yarn.lock
+pnpm-lock.yaml
+
+# Environment variables - NEVER COMMIT
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# IDE/Editor files
 .vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+
+# OS files
+.DS_Store
+Thumbs.db
+.AppleDouble
+.LSOverride
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+debug.log
+error.log
+
+# Misc
+*.pem
+.cache/
+tmp/
+temp/
+
+# Uploads and generated files
+/uploads
+/public/uploads
+/data
+
+# Build artifacts
+.nyc_output/
+*.tsbuildinfo
+next-env.d.ts
+
+# Vercel
+.vercel
+
+# Backup files
+*.bak
+*.tmp
