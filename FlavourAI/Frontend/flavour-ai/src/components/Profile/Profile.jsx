@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2, Edit } from "lucide-react"
+import { getUserProfile, getUserData, isAuthenticated } from "@/utils/api"
 
 export default function Profile() {
   const router = useRouter()
@@ -15,124 +16,39 @@ export default function Profile() {
       try {
         setLoading(true)
         
-        // Get user ID from localStorage/cookies/context
-        const userId = localStorage.getItem('userId') || 'CURRENT_USER_ID'
-        
-        // Try to fetch from backend API
-        try {
-          const response = await fetch(`http://localhost:3000/api/users/profile/${userId}`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-          })
-
-          if (response.ok) {
-            const data = await response.json()
-            setUserData(data.data || data)
-            setError(null)
-            setLoading(false)
-            return
-          }
-        } catch (apiError) {
-          console.log('API not available, using mock data:', apiError.message)
-        }
-
-        // Fallback to mock data if API is not available
-        // REMOVE THIS SECTION when backend is ready
-        const mockData = {
-          username: "John Doe",
-          name: "John Doe",
-          email: "john@example.com",
-          age: 28,
-          profileImage: "/icon.png",
-          moodChoice: "Adventurous",
-          mood: "Happy",
-          personality: "You love bold flavors and trying new cuisines. Your cooking style reflects creativity and experimentation with various spices and ingredients.",
-          bio: "Passionate home cook who loves exploring world cuisines",
-          
-          // Stats
-          totalRecipes: 45,
-          favoriteRecipes: 12,
-          cookedRecipes: 28,
-          savedRecipes: 15,
-          
-          // Top Recipes
-          topRecipes: [
-            {
-              id: "1",
-              name: "Chicken Tikka Masala",
-              title: "Chicken Tikka Masala",
-              image: null,
-              cookTime: "45 min",
-              rating: 4.8
-            },
-            {
-              id: "2",
-              name: "Pasta Carbonara",
-              title: "Pasta Carbonara",
-              image: null,
-              cookTime: "30 min",
-              rating: 4.5
-            },
-            {
-              id: "3",
-              name: "Beef Tacos",
-              title: "Beef Tacos",
-              image: null,
-              cookTime: "25 min",
-              rating: 4.7
-            }
-          ],
-          
-          // Suggested Recipes
-          suggestedRecipes: [
-            {
-              id: "4",
-              name: "Thai Green Curry",
-              title: "Thai Green Curry",
-              image: null,
-              description: "Authentic Thai curry with coconut milk",
-              cookTime: "40 min"
-            },
-            {
-              id: "5",
-              name: "Margherita Pizza",
-              title: "Margherita Pizza",
-              image: null,
-              description: "Classic Italian pizza with fresh basil",
-              cookTime: "35 min"
-            },
-            {
-              id: "6",
-              name: "Sushi Rolls",
-              title: "Sushi Rolls",
-              image: null,
-              description: "Homemade sushi with fresh ingredients",
-              cookTime: "50 min"
-            }
-          ],
-          
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+        // Check if user is authenticated
+        if (!isAuthenticated()) {
+          router.push('/login')
+          return
         }
         
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 500))
-        setUserData(mockData)
-        setError(null)
+        // Get user ID from localStorage
+        const { userId } = getUserData()
         
-      } catch (err) {
-        console.error('Error fetching profile:', err)
-        setError(err.message)
+        if (!userId) {
+          router.push('/login')
+          return
+        }
+
+        // Fetch from backend API
+        const response = await getUserProfile(userId)
+        
+        if (response?.success) {
+          setUserData(response.data)
+          setError(null)
+        } else {
+          setError(response?.message || 'Failed to load profile')
+        }
+      } catch (apiError) {
+        console.error('Profile fetch error:', apiError)
+        setError(apiError.message || 'Failed to load profile')
       } finally {
         setLoading(false)
       }
     }
 
     fetchUserProfile()
-  }, [])
+  }, [router])
 
   // Loading state
   if (loading) {

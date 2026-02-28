@@ -1,24 +1,76 @@
-const mongoose= require('mongoose')
+const mongoose = require('mongoose');
 
-const userSchema= mongoose.Schema(
+const userSchema = mongoose.Schema(
     {
-        username:{
+        username: {
             type: String,
             required: true,
             unique: true,
+            trim: true
         },
-        email:{
+        fullName: {
+            type: String,
+            default: ''
+        },
+        email: {
             type: String,
             required: true,
             unique: true,
+            lowercase: true,
+            trim: true
         },
-        password:{
-            type: [String],
-            
+        password: {
+            type: String,
+            required: true
         },
+        profileImage: {
+            type: String,
+            default: ''
+        },
+        profileImageId: {
+            type: String,
+            default: ''
+        },
+        age: {
+            type: Number,
+            default: null
+        },
+        bio: {
+            type: String,
+            default: ''
+        },
+        moodChoice: {
+            type: String,
+            default: 'balanced'
+        },
+        personality: {
+            type: String,
+            default: ''
+        },
+        totalRecipes: {
+            type: Number,
+            default: 0
+        },
+        favoriteRecipes: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Recipe'
+        }],
+        cookedRecipes: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Recipe'
+        }],
+        topRecipeIds: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Recipe'
+        }],
+        suggestedRecipeIds: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Recipe'
+        }]
     },
     {
         timestamps: true,
     }
-)
-module.exports= mongoose.model('Recipe', recipeSchema);
+);
+
+module.exports = mongoose.model('User', userSchema);

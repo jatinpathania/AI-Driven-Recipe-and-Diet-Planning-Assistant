@@ -7,7 +7,7 @@ cloudinary.config({
     api_secret: process.env.CLOUD_API_SECRET
 })
 
-const uploadToCloudinary= async (file)=>{
+const uploadToCloudinary= async (file, options = {})=>{
     try{
         if(!file || !file.buffer){
             throw new Error("No file provided or invalid file format");
@@ -15,7 +15,7 @@ const uploadToCloudinary= async (file)=>{
         return new Promise((resolve,reject)=>{
             const stream= cloudinary.uploader.upload_stream(
                 {
-                    folder: "assets",
+                    folder: options.folder || "assets",
                     resource_type: "auto"
                 },
                 (error,result)=>{
@@ -34,7 +34,7 @@ const uploadToCloudinary= async (file)=>{
             const bufferStream= new Readable();
             bufferStream.push(file.buffer);
             bufferStream.push(null);     //buffer end signla
-            buffer.pipe(stream);
+            bufferStream.pipe(stream);
         });
     }
     catch(error){
@@ -62,6 +62,5 @@ const deleteFromCloudinary = async(publicId)=>{
 
 module.exports={
     uploadToCloudinary,
-    deleteFromCloudinary,
-    uploadDirectory
+    deleteFromCloudinary
 };

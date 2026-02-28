@@ -1,6 +1,6 @@
 "use client"
-import SignupPage from "@/components/Signup/page"
+import AuthPage from "@/components/Auth/AuthPage"
 
 export default function RouteSignup() {
-  return <SignupPage />
+  return <AuthPage initialTab="signup" />
 }
