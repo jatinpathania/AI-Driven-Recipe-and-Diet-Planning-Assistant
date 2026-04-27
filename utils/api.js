@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
 const apiCall = async (endpoint, options = {}) =>{
     try{
@@ -98,6 +98,15 @@ export const uploadProfilePicture = async (file) => {
     return await response.json();
 };
 
+export const saveUserData = (data) => {
+    if (typeof window !== 'undefined') {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('userId', data._id);
+        localStorage.setItem('username', data.username);
+        localStorage.setItem('userEmail', data.email);
+    }
+};
+
 export const createRecipe = async (recipeData) => {
     return await apiCall('/recipes', {
         method: 'POST',
@@ -138,15 +147,6 @@ export const uploadRecipeImage = async (file) => {
     });
 
     return await response.json();
-};
-
-export const saveUserData = (data) => {
-    if (typeof window !== 'undefined') {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('userId', data._id);
-        localStorage.setItem('username', data.username);
-        localStorage.setItem('userEmail', data.email);
-    }
 };
 
 export const getUserData = () => {
@@ -312,5 +312,56 @@ export const generateRecipe = async (ingredients, userId, guestId) => {
     return await apiCall('/chat/generate-recipe', {
         method: 'POST',
         body: JSON.stringify({ ingredients, userId, guestId })
+    });
+};
+
+// ========== NEW FEATURES ==========
+
+// Favorites
+export const addToFavorites = async (recipeId, rating, notes) => {
+    return await apiCall('/favorites', {
+        method: 'POST',
+        body: JSON.stringify({ recipeId, rating, notes })
+    });
+};
+
+export const getFavorites = async () => {
+    return await apiCall('/favorites', { method: 'GET' });
+};
+
+export const removeFromFavorites = async (recipeId) => {
+    return await apiCall('/favorites', {
+        method: 'DELETE',
+        body: JSON.stringify({ recipeId })
+    });
+};
+
+// Media Upload
+export const uploadMedia = async (file, type = 'image') => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', type);
+
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/upload`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`
+        },
+        body: formData
+    });
+
+    return await response.json();
+};
+
+// Dietary Preferences
+export const getDietaryPreferences = async () => {
+    return await apiCall('/dietary-preferences', { method: 'GET' });
+};
+
+export const updateDietaryPreferences = async (preferences) => {
+    return await apiCall('/dietary-preferences', {
+        method: 'PUT',
+        body: JSON.stringify(preferences)
     });
 };

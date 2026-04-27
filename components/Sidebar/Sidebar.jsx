@@ -7,6 +7,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useGuestUser } from '@/context/GuestUserContext'
 import { useSession, signOut } from 'next-auth/react'
 import Image from 'next/image'
+import AnimatedLogo from '@/components/Logo/AnimatedLogo'
 
 const Sidebar = () => {
     const pathname = usePathname()
@@ -16,16 +17,6 @@ const Sidebar = () => {
     const [isOpen, setIsOpen] = useState(false)
     const [todayCalories, setTodayCalories] = useState(0)
     const [username, setUsername] = useState('')
-    const [logoWordIndex, setLogoWordIndex] = useState(0)
-
-    const logoWords = ['AI', 'Cook', 'Plan', 'Track']
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setLogoWordIndex(prev => (prev + 1) % logoWords.length)
-        }, 2500)
-        return () => clearInterval(interval)
-    }, [])
 
     useEffect(() => {
         if (session?.user?.name) {
@@ -95,25 +86,7 @@ const Sidebar = () => {
             <div className="absolute bottom-[-10%] right-[-20%] w-[180px] h-[180px] bg-blue-200/15 dark:bg-blue-500/[0.03] rounded-full blur-[80px] pointer-events-none" />
             <div className="relative z-10 flex flex-col h-full">
                 <div className="p-4 pb-3">
-                    <Link href="/" className="flex items-center gap-2.5 group">
-                        <div className="relative w-8 h-8 rounded-xl overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 dark:shadow-emerald-500/10">
-                            <Image src="/icon.png" alt="Flavour" width={20} height={20} className="relative z-10" />
-                            <div className="absolute top-0 right-0 w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                        </div>
-                        <div className="leading-none">
-                            <div className="flex items-baseline gap-0">
-                                <span className="text-[15px] font-bold text-gray-800 dark:text-gray-100">Flavour</span>
-                                <span className="text-[15px] font-bold text-emerald-500">.</span>
-                            </div>
-                            <div className="h-4 overflow-hidden">
-                                <div className="transition-transform duration-500 ease-in-out" style={{ transform: `translateY(-${logoWordIndex * 16}px)` }}>
-                                    {logoWords.map((w, i) => (
-                                        <p key={i} className="text-[10px] font-medium text-emerald-500/70 h-4 leading-4">{w}</p>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </Link>
+                    <AnimatedLogo />
                 </div>
 
                 <nav className="flex-1 px-3 space-y-5 overflow-y-auto no-scrollbar">
