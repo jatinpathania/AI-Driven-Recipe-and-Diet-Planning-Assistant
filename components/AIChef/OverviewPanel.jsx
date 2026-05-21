@@ -121,7 +121,6 @@ const OverviewPanel = ({ mobile = false, onClose }) => {
 
                 <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 dark:from-emerald-500/[0.06] dark:to-teal-500/[0.03] border border-emerald-500/10 dark:border-emerald-500/[0.08] rounded-xl p-4 text-center">
                     <Sparkles className="w-5 h-5 text-emerald-500 mx-auto mb-2" />
-                    <p className="text-xs font-semibold text-gray-700 dark:text-gray-200 mb-0.5">Powered by Gemini</p>
                     <p className="text-[10px] text-gray-400 dark:text-gray-500">Ask me recipes, plan meals, or track nutrition</p>
                 </div>
             </div>
