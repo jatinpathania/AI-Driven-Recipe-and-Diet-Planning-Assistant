@@ -1,11 +1,12 @@
 "use client"
 import { useState, useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
+import Image from "next/image"
 import { Eye, EyeOff, X, Mail, Lock, Sparkles } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import { useSession, signIn, signOut } from "next-auth/react"
-import { loginUser, signupUser, saveUserData } from "@/utils/api"
+import { loginUser, signupUser, saveUserData, scheduleAutoLogout } from "@/utils/api"
 
 const INPUT_BASE =
     "w-full h-14 rounded-xl text-[15px] text-white placeholder:text-white/30 bg-white/[0.03] outline-none transition-all duration-300 border border-white/10 focus:border-white/30 focus:bg-white/[0.08] focus:ring-4 focus:ring-white/5 hover:bg-white/[0.05]"
@@ -63,6 +64,7 @@ export default function AuthPage({ initialTab = "signin" }) {
             const res = await loginUser(signInForm)
             if (res?.success) {
                 saveUserData(res.data)
+                scheduleAutoLogout()
                 router.push("/kitchen")
             } else {
                 setError(res?.message || "Invalid credentials")
@@ -90,6 +92,7 @@ export default function AuthPage({ initialTab = "signin" }) {
             const res = await signupUser(signUpForm)
             if (res?.success) {
                 saveUserData(res.data)
+                scheduleAutoLogout()
                 router.push("/kitchen")
             } else {
                 setError(res?.message || "Signup failed")
@@ -130,7 +133,7 @@ export default function AuthPage({ initialTab = "signin" }) {
                                 transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
                                 className="relative"
                             >
-                                <img src="/icon.png" alt="Flavour AI" className="w-8 h-8 sm:w-9 sm:h-9" />
+                                <Image src="/icon.png" alt="Flavour AI" width={36} height={36} className="w-8 h-8 sm:w-9 sm:h-9" />
                                 <motion.div
                                     className="absolute -top-1 -right-1"
                                     animate={{ scale: [1, 1.2, 1], opacity: [0.7, 1, 0.7] }}
