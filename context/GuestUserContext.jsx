@@ -14,51 +14,38 @@ export const useGuestUser = () => {
 };
 
 export const GuestUserProvider = ({ children }) => {
-    const [guestId, setGuestId] = useState(() => {
-        if (typeof window === 'undefined') return null;
-        const storedUserId = localStorage.getItem('userId');
-        const storedToken = localStorage.getItem('token');
-        
-        if (storedUserId && storedToken) {
-            return null;
-        } else {
-            let storedGuestId = localStorage.getItem('guestId');
-            if (!storedGuestId) {
-                storedGuestId = uuidv4();
-                localStorage.setItem('guestId', storedGuestId);
-            }
-            return storedGuestId;
-        }
-    });
-
-    const [userId, setUserId] = useState(() => {
-        if (typeof window === 'undefined') return null;
-        const storedUserId = localStorage.getItem('userId');
-        const storedToken = localStorage.getItem('token');
-        return (storedUserId && storedToken) ? storedUserId : null;
-    });
-
-    const [isGuest, setIsGuest] = useState(() => {
-        if (typeof window === 'undefined') return true;
-        const storedUserId = localStorage.getItem('userId');
-        const storedToken = localStorage.getItem('token');
-        return !(storedUserId && storedToken);
-    });
+    const [guestId, setGuestId] = useState(null);
+    const [userId, setUserId] = useState(null);
+    const [isGuest, setIsGuest] = useState(true);
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
         const storedUserId = localStorage.getItem('userId');
         const storedToken = localStorage.getItem('token');
         
         if (storedUserId && storedToken) {
-            localStorage.setItem('authType', 'user');
+            setUserId(storedUserId);
+            setIsGuest(false);
+            setGuestId(null);
         } else {
-            localStorage.setItem('authType', 'guest');
+            let storedGuestId = localStorage.getItem('guestId');
+            if (!storedGuestId) {
+                storedGuestId = uuidv4();
+                localStorage.setItem('guestId', storedGuestId);
+            }
+            setGuestId(storedGuestId);
+            setUserId(null);
+            setIsGuest(true);
         }
+
+        localStorage.setItem('authType', storedUserId && storedToken ? 'user' : 'guest');
+        setMounted(true);
     }, []);
 
     const login = (newUserId) => {
         setUserId(newUserId);
         setIsGuest(false);
+        setGuestId(null);
         localStorage.setItem('userId', newUserId);
         localStorage.setItem('authType', 'user');
     };
@@ -86,7 +73,8 @@ export const GuestUserProvider = ({ children }) => {
         isGuest,
         login,
         logout,
-        getUserIdentifier
+        getUserIdentifier,
+        mounted
     };
 
     return (

@@ -1,8 +1,31 @@
 "use client"
 
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useSyncExternalStore } from 'react';
 
 const KitchenThemeContext = createContext();
+
+let themeValue = 'light';
+
+const getSnapshot = () => {
+    return themeValue;
+};
+
+const getServerSnapshot = () => {
+    return 'light';
+};
+
+const subscribe = (callback) => {
+    // Initialize theme from localStorage when first subscribed (on mount)
+    themeValue = localStorage.getItem('kitchen-theme') || 'light';
+    
+    const handleStorageChange = () => {
+        themeValue = localStorage.getItem('kitchen-theme') || 'light';
+        callback();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+};
 
 export const useKitchenTheme = () => {
     const context = useContext(KitchenThemeContext);
@@ -13,20 +36,17 @@ export const useKitchenTheme = () => {
 };
 
 export const KitchenThemeProvider = ({ children }) => {
-    const [theme, setThemeState] = useState(() => {
-        if (typeof window === 'undefined') return 'light';
-        return localStorage.getItem('kitchen-theme') || 'light';
-    });
+    const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+
+    const setTheme = (value) => {
+        themeValue = value;
+        localStorage.setItem('kitchen-theme', value);
+        window.dispatchEvent(new Event('storage'));
+    };
 
     const toggleTheme = () => {
         const next = theme === 'dark' ? 'light' : 'dark';
-        setThemeState(next);
-        localStorage.setItem('kitchen-theme', next);
-    };
-
-    const setTheme = (value) => {
-        setThemeState(value);
-        localStorage.setItem('kitchen-theme', value);
+        setTheme(next);
     };
 
     return (
