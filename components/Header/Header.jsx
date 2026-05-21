@@ -159,33 +159,40 @@ export default function Header({ overlay = false }) {
                             Get Started
                         </Link>
                     ) : (
-                        <div className="relative" ref={dropdownRef}>
+                        <div className="flex items-center gap-3">
                             <button
                                 type="button"
-                                onClick={() => setMenuOpen((prev) => !prev)}
-                                className="h-10 px-4 rounded-full border border-white/20 bg-white/10 text-green-900 text-sm font-semibold flex items-center gap-2 hover:bg-white/20 transition-colors"
+                                onClick={() => router.push('/kitchen')}
+                                className="h-10 px-4 rounded-full bg-green-800 text-white text-sm font-semibold flex items-center hover:bg-green-900 transition-colors cursor-pointer"
                             >
-                                <span>{username}</span>
-                                <ChevronDown className={`w-4 h-4 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
+                                Go to app
                             </button>
 
-                            {menuOpen && (
-                                <div className="absolute right-0 mt-2 w-52 rounded-2xl border border-white/20 bg-white/85 backdrop-blur-xl shadow-xl p-2">
-                                    <Link href="/kitchen" onClick={() => setMenuOpen(false)} className="block px-3 py-2 rounded-lg text-sm text-green-900 hover:bg-green-50">
-                                        Kitchen
-                                    </Link>
-                                    <Link href="/kitchen/profile" onClick={() => setMenuOpen(false)} className="block px-3 py-2 rounded-lg text-sm text-green-900 hover:bg-green-50">
-                                        Profile
-                                    </Link>
-                                    <button
-                                        type="button"
-                                        onClick={handleLogoutClick}
-                                        className="w-full text-left px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 cursor-pointer"
-                                    >
-                                        Log out
-                                    </button>
-                                </div>
-                            )}
+                            <div className="relative" ref={dropdownRef}>
+                                <button
+                                    type="button"
+                                    onClick={() => setMenuOpen((prev) => !prev)}
+                                    className="h-10 px-4 rounded-full border border-white/20 bg-white/10 text-green-900 text-sm font-semibold flex items-center gap-2 hover:bg-white/20 transition-colors cursor-pointer"
+                                >
+                                    <span>{username}</span>
+                                    <ChevronDown className={`w-4 h-4 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
+                                </button>
+
+                                {menuOpen && (
+                                    <div className="absolute right-0 mt-2 w-52 rounded-2xl border border-white/20 bg-white/85 backdrop-blur-xl shadow-xl p-2">
+                                        <Link href="/kitchen/profile" onClick={() => setMenuOpen(false)} className="block px-3 py-2 rounded-lg text-sm text-green-900 hover:bg-green-50 cursor-pointer">
+                                            Profile
+                                        </Link>
+                                        <button
+                                            type="button"
+                                            onClick={handleLogoutClick}
+                                            className="w-full text-left px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 cursor-pointer"
+                                        >
+                                            Log out
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
