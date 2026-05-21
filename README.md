@@ -58,8 +58,6 @@ This app is especially helpful for:
 - **Middleware:** Custom authentication middleware, CORS support
 
 ### **AI & Third-Party APIs**
-- **Recipe Generation & Chat:** Google Generative AI (@google/generative-ai)
-### **AI & Third-Party APIs**
 - **Advanced AI Models:** Hugging Face Qwen (`Qwen/Qwen2.5-7B-Instruct`) via the Hugging Face Router (uses `HF_KEY`)
 - **Calorie Estimation:** Integrated calorie calculation algorithms
 
