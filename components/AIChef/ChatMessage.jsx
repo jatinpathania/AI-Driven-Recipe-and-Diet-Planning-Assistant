@@ -4,13 +4,14 @@ import React from 'react'
 import { Sparkles, Play, CalendarPlus, Bookmark } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
+import { v4 as uuidv4 } from 'uuid'
 
 const ChatMessage = ({ message }) => {
     const router = useRouter()
     const isAI = message.role === 'ai'
 
     const handleCook = (recipe) => {
-        const data = { id: Date.now().toString(), ...recipe }
+        const data = { id: uuidv4(), ...recipe }
         const saved = JSON.parse(localStorage.getItem('flavourai_recipes') || '[]')
         if (!saved.some(r => r.name === data.name)) {
             localStorage.setItem('flavourai_recipes', JSON.stringify([data, ...saved]))
@@ -29,7 +30,7 @@ const ChatMessage = ({ message }) => {
     }
 
     const handleSave = (recipe) => {
-        const data = { id: Date.now().toString(), ...recipe }
+        const data = { id: uuidv4(), ...recipe }
         const saved = JSON.parse(localStorage.getItem('flavourai_recipes') || '[]')
         if (!saved.some(r => r.name === data.name)) {
             localStorage.setItem('flavourai_recipes', JSON.stringify([data, ...saved]))
