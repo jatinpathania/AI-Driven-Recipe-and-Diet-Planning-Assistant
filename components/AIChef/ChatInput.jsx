@@ -38,7 +38,7 @@ const ChatInput = ({ input, setInput, onSend, quickPrompts, onQuickPrompt }) => 
         
         const count = parseInt(localStorage.getItem('guestPromptCount') || '0', 10) + 1
         localStorage.setItem('guestPromptCount', count)
-        if (count > 5) {
+        if (count > 4) {
             triggerGuestLoginPopup()
             return true
         }
