@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { User, BookOpen, ChefHat, Flame, Zap, LogOut, Moon, Sun, Loader2, ArrowRight } from 'lucide-react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import { useKitchenTheme } from '@/context/KitchenThemeContext'
@@ -59,12 +60,17 @@ const ProfilePage = () => {
             setLoading(false)
         }
         loadData()
-    }, [session])
+    }, [session, login])
 
     const isLoggedIn = session || isAuthenticated()
     const emailAuthData = getUserData()
-    const displayName = session?.user?.username || emailAuthData?.username || session?.user?.name || userData?.name || userData?.username || (isGuest ? 'Guest Chef' : 'Chef')
-    const displayEmail = session?.user?.email || emailAuthData?.email || userData?.email || (isGuest ? 'Guest account' : '')
+    const displayName = isGuest
+        ? 'Guest Chef'
+        : (session?.user?.username || emailAuthData?.username || session?.user?.name || userData?.name || userData?.username || 'Chef')
+    const displaySubtitle = isGuest ? 'guest account' : 'User'
+    const displayEmail = isGuest
+        ? ''
+        : (session?.user?.email || emailAuthData?.email || userData?.email || '')
     // Database is source of truth for profile image
     // It gets filled when: 1) Email signup (empty), 2) Google fills it if empty, 3) Custom upload
     // Once image exists, it's locked and won't be overwritten
@@ -130,7 +136,7 @@ const ProfilePage = () => {
                                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 p-[2px]">
                                         <div className="w-full h-full rounded-[14px] overflow-hidden bg-white dark:bg-[#0f1419] flex items-center justify-center">
                                             {profileImage ? (
-                                                <img src={profileImage} alt="" className="w-full h-full object-cover" />
+                                                <Image src={profileImage} alt={displayName} width={64} height={64} className="w-full h-full object-cover" />
                                             ) : (
                                                 <span className="text-2xl">👨‍🍳</span>
                                             )}
@@ -140,11 +146,7 @@ const ProfilePage = () => {
                                 <div className="flex-1">
                                     <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{displayName}</h2>
                                     {displayEmail && <p className="text-sm text-gray-400 dark:text-gray-600">{displayEmail}</p>}
-                                    <div className="flex items-center gap-2 mt-1.5">
-                                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${isLoggedIn && !isGuest ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-black/[0.04] dark:bg-white/[0.04] text-gray-500 dark:text-gray-400'}`}>
-                                            {isLoggedIn && !isGuest ? 'Pro Member' : 'Home Cook'}
-                                        </span>
-                                    </div>
+                                    <p className="text-[10px] text-emerald-500 font-medium mt-1.5">{displaySubtitle}</p>
                                 </div>
                                 <button onClick={handleLogout}
                                     className="p-2.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] hover:bg-red-500/10 transition-colors group">

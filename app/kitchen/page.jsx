@@ -1,10 +1,9 @@
 "use client"
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Play, CalendarPlus, Moon, Sun, Sparkles, PanelRightOpen, PanelRightClose } from 'lucide-react'
+import { Play, CalendarPlus, Sparkles, PanelRightOpen, PanelRightClose } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { useKitchenTheme } from '@/context/KitchenThemeContext'
 import { useGuestUser } from '@/context/GuestUserContext'
 import { sendChatMessage } from '@/utils/api'
 import ChatMessage from '@/components/AIChef/ChatMessage'
@@ -14,7 +13,6 @@ import ChatInput from '@/components/AIChef/ChatInput'
 const KitchenPage = () => {
     const { userId } = useGuestUser()
     const router = useRouter()
-    const { theme, setTheme, mounted } = useKitchenTheme()
     const [showOverview, setShowOverview] = useState(false)
     const [messages, setMessages] = useState([{
         role: 'ai',
@@ -131,14 +129,6 @@ const KitchenPage = () => {
                         </div>
                     </div>
                     <div className="flex items-center gap-1.5">
-                        {mounted && (
-                            <button
-                                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                                className="p-2 rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors"
-                            >
-                                {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-gray-400" />}
-                            </button>
-                        )}
                         <button
                             onClick={() => setShowOverview(!showOverview)}
                             className="xl:hidden p-2 rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors"
