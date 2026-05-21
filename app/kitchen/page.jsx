@@ -122,10 +122,7 @@ const KitchenPage = () => {
                         <div className="leading-none">
                             <span className="text-[15px] font-semibold text-gray-800 dark:text-gray-100">Flavour</span>
                             <span className="text-[15px] font-semibold text-emerald-500">.</span>
-                            <div className="flex items-center gap-1 mt-0.5">
-                                <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
-                                <span className="text-[10px] text-gray-400 dark:text-gray-600">Gemini Pro</span>
-                            </div>
+                            
                         </div>
                     </div>
                     <div className="flex items-center gap-1.5">
