@@ -1,10 +1,124 @@
 import React, { useState, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import { Send, UserCircle2, X, ChefHat, Calendar, Sparkles } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Header from "@/components/Header/Header"
 import Container from "@/components/ui/Container"
 import Footer from '@/components/Footer/Footer'
 import Link from 'next/link'
+
+const rotatingWords = ['companion', 'assistant', 'guide', 'expert', 'chef']
+
+const recipesDatabase = [
+    {
+        id: 1,
+        name: "Mediterranean Chickpea Salad",
+        time: "15 mins",
+        servings: 4,
+        calories: 285,
+        desc: "A fresh, protein-packed salad bursting with Mediterranean flavors. Perfect for lunch or as a side dish.",
+        ingredients: [
+            "2 cans chickpeas, drained and rinsed",
+            "1 cucumber, diced",
+            "2 tomatoes, chopped",
+            "1/2 red onion, thinly sliced",
+            "+6 more"
+        ],
+        difficulty: "Easy",
+        requiredVeggies: ["Tomato", "Onion", "Cucumber"],
+        image: "/api/placeholder/400/300"
+    },
+    {
+        id: 2,
+        name: "Creamy Mushroom Risotto",
+        time: "35 mins",
+        servings: 4,
+        calories: 420,
+        desc: "Rich and creamy Italian rice dish with earthy mushrooms and parmesan cheese.",
+        ingredients: [
+            "1 1/2 cups arborio rice",
+            "4 cups warm vegetable broth",
+            "1 lb mixed mushrooms, sliced",
+            "1 onion, finely chopped",
+            "+6 more"
+        ],
+        difficulty: "Medium",
+        requiredVeggies: ["Mushroom", "Onion", "Garlic"],
+        image: "/api/placeholder/400/300"
+    },
+    {
+        id: 3,
+        name: "Colorful Vegetable Stir-fry",
+        time: "20 mins",
+        servings: 3,
+        calories: 280,
+        desc: "Quick and vibrant Asian-inspired stir-fry with crisp vegetables and ginger.",
+        ingredients: [
+            "3 cups mixed vegetables",
+            "2 tbsp sesame oil",
+            "3 cloves garlic, minced",
+            "2 tbsp soy sauce",
+            "+5 more"
+        ],
+        difficulty: "Easy",
+        requiredVeggies: ["Bell Pepper", "Carrot", "Broccoli", "Ginger"],
+        image: "/api/placeholder/400/300"
+    },
+    {
+        id: 4,
+        name: "Classic Potato Curry",
+        time: "30 mins",
+        servings: 4,
+        calories: 320,
+        desc: "Warming Indian-style curry with tender potatoes in aromatic spices.",
+        ingredients: [
+            "4 large potatoes, cubed",
+            "2 tomatoes, pureed",
+            "1 onion, chopped",
+            "2 cloves garlic, minced",
+            "+7 more"
+        ],
+        difficulty: "Medium",
+        requiredVeggies: ["Potato", "Tomato", "Onion", "Ginger"],
+        image: "/api/placeholder/400/300"
+    },
+    {
+        id: 5,
+        name: "Spinach & Garlic Pasta",
+        time: "18 mins",
+        servings: 2,
+        calories: 380,
+        desc: "Simple yet elegant pasta with sautéed spinach and garlic in olive oil.",
+        ingredients: [
+            "200g pasta",
+            "3 cups fresh spinach",
+            "4 cloves garlic, sliced",
+            "1/4 cup olive oil",
+            "+4 more"
+        ],
+        difficulty: "Easy",
+        requiredVeggies: ["Spinach", "Garlic"],
+        image: "/api/placeholder/400/300"
+    },
+    {
+        id: 6,
+        name: "Roasted Cauliflower Bowl",
+        time: "25 mins",
+        servings: 3,
+        calories: 295,
+        desc: "Healthy bowl with roasted cauliflower, chickpeas, and tahini dressing.",
+        ingredients: [
+            "1 head cauliflower, florets",
+            "1 can chickpeas",
+            "2 cloves garlic, minced",
+            "1/4 cup tahini",
+            "+5 more"
+        ],
+        difficulty: "Easy",
+        requiredVeggies: ["Cauliflower", "Garlic"],
+        image: "/api/placeholder/400/300"
+    }
+]
 
 const Home = () => {
     const [messages, setMessages] = useState([
@@ -20,119 +134,7 @@ const Home = () => {
     const [generatedRecipes, setGeneratedRecipes] = useState([])
     const [isGenerating, setIsGenerating] = useState(false)
 
-    //wprds rotation in header
-    const rotatingWords = ['companion', 'assistant', 'guide', 'expert', 'chef']
 
-    const recipesDatabase = [
-        {
-            id: 1,
-            name: "Mediterranean Chickpea Salad",
-            time: "15 mins",
-            servings: 4,
-            calories: 285,
-            desc: "A fresh, protein-packed salad bursting with Mediterranean flavors. Perfect for lunch or as a side dish.",
-            ingredients: [
-                "2 cans chickpeas, drained and rinsed",
-                "1 cucumber, diced",
-                "2 tomatoes, chopped",
-                "1/2 red onion, thinly sliced",
-                "+6 more"
-            ],
-            difficulty: "Easy",
-            requiredVeggies: ["Tomato", "Onion", "Cucumber"],
-            image: "/api/placeholder/400/300"
-        },
-        {
-            id: 2,
-            name: "Creamy Mushroom Risotto",
-            time: "35 mins",
-            servings: 4,
-            calories: 420,
-            desc: "Rich and creamy Italian rice dish with earthy mushrooms and parmesan cheese.",
-            ingredients: [
-                "1 1/2 cups arborio rice",
-                "4 cups warm vegetable broth",
-                "1 lb mixed mushrooms, sliced",
-                "1 onion, finely chopped",
-                "+6 more"
-            ],
-            difficulty: "Medium",
-            requiredVeggies: ["Mushroom", "Onion", "Garlic"],
-            image: "/api/placeholder/400/300"
-        },
-        {
-            id: 3,
-            name: "Colorful Vegetable Stir-fry",
-            time: "20 mins",
-            servings: 3,
-            calories: 280,
-            desc: "Quick and vibrant Asian-inspired stir-fry with crisp vegetables and ginger.",
-            ingredients: [
-                "3 cups mixed vegetables",
-                "2 tbsp sesame oil",
-                "3 cloves garlic, minced",
-                "2 tbsp soy sauce",
-                "+5 more"
-            ],
-            difficulty: "Easy",
-            requiredVeggies: ["Bell Pepper", "Carrot", "Broccoli", "Ginger"],
-            image: "/api/placeholder/400/300"
-        },
-        {
-            id: 4,
-            name: "Classic Potato Curry",
-            time: "30 mins",
-            servings: 4,
-            calories: 320,
-            desc: "Warming Indian-style curry with tender potatoes in aromatic spices.",
-            ingredients: [
-                "4 large potatoes, cubed",
-                "2 tomatoes, pureed",
-                "1 onion, chopped",
-                "2 cloves garlic, minced",
-                "+7 more"
-            ],
-            difficulty: "Medium",
-            requiredVeggies: ["Potato", "Tomato", "Onion", "Ginger"],
-            image: "/api/placeholder/400/300"
-        },
-        {
-            id: 5,
-            name: "Spinach & Garlic Pasta",
-            time: "18 mins",
-            servings: 2,
-            calories: 380,
-            desc: "Simple yet elegant pasta with sautéed spinach and garlic in olive oil.",
-            ingredients: [
-                "200g pasta",
-                "3 cups fresh spinach",
-                "4 cloves garlic, sliced",
-                "1/4 cup olive oil",
-                "+4 more"
-            ],
-            difficulty: "Easy",
-            requiredVeggies: ["Spinach", "Garlic"],
-            image: "/api/placeholder/400/300"
-        },
-        {
-            id: 6,
-            name: "Roasted Cauliflower Bowl",
-            time: "25 mins",
-            servings: 3,
-            calories: 295,
-            desc: "Healthy bowl with roasted cauliflower, chickpeas, and tahini dressing.",
-            ingredients: [
-                "1 head cauliflower, florets",
-                "1 can chickpeas",
-                "2 cloves garlic, minced",
-                "1/4 cup tahini",
-                "+5 more"
-            ],
-            difficulty: "Easy",
-            requiredVeggies: ["Cauliflower", "Garlic"],
-            image: "/api/placeholder/400/300"
-        }
-    ]
 
     const toggleVeggie = (veggie) => {
         setSelectedVeggies(prev =>
@@ -142,36 +144,29 @@ const Home = () => {
         )
     }
 
-    const generateRecipes = () => {
-        if (selectedVeggies.length === 0) return
-
-        setIsGenerating(true)
-
-        // Simulate AI processing
-        setTimeout(() => {
-            const matchedRecipes = recipesDatabase.filter(recipe =>
-                recipe.requiredVeggies.some(veggie => selectedVeggies.includes(veggie))
-            ).sort((a, b) => {
-                // Sort by number of matching ingredients
-                const aMatches = a.requiredVeggies.filter(v => selectedVeggies.includes(v)).length
-                const bMatches = b.requiredVeggies.filter(v => selectedVeggies.includes(v)).length
-                return bMatches - aMatches
-            }).slice(0, 4) // Show top 4 matches
-
-            setGeneratedRecipes(matchedRecipes)
-            setIsGenerating(false)
-        }, 800)
-    }
-
     useEffect(() => {
         if (selectedVeggies.length > 0) {
-            generateRecipes()
+            queueMicrotask(() => setIsGenerating(true))
+            
+            const timer = setTimeout(() => {
+                const matchedRecipes = recipesDatabase.filter(recipe =>
+                    recipe.requiredVeggies.some(veggie => selectedVeggies.includes(veggie))
+                ).sort((a, b) => {
+                    const aMatches = a.requiredVeggies.filter(v => selectedVeggies.includes(v)).length
+                    const bMatches = b.requiredVeggies.filter(v => selectedVeggies.includes(v)).length
+                    return bMatches - aMatches
+                }).slice(0, 4)
+
+                setGeneratedRecipes(matchedRecipes)
+                setIsGenerating(false)
+            }, 800)
+
+            return () => clearTimeout(timer)
         } else {
-            setGeneratedRecipes([])
+            queueMicrotask(() => setGeneratedRecipes([]))
         }
     }, [selectedVeggies])
 
-    // Word rotation effect
     useEffect(() => {
         const interval = setInterval(() => {
             setCurrentWordIndex((prev) => (prev + 1) % rotatingWords.length)
@@ -191,7 +186,6 @@ const Home = () => {
         }
     }, [isDialogOpen])
 
-    // Auto-scroll to latest message
     useEffect(() => {
         if (chatContainerRef.current) {
             setTimeout(() => {
@@ -224,7 +218,6 @@ const Home = () => {
         setMessages((prev) => [...prev, { role: 'user', content: input }])
         setInput('')
 
-        // Sample answer with delay
         setTimeout(() => {
             setMessages((prev) => [...prev, {
                 role: 'assistant',
@@ -237,7 +230,6 @@ const Home = () => {
         setIsDialogOpen(false)
     }
 
-    // Animation variants
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -305,7 +297,6 @@ const Home = () => {
         }
     }
 
-    // Smooth message animation variants
     const messageVariants = {
         hidden: {
             opacity: 0,
@@ -383,7 +374,6 @@ const Home = () => {
                             </motion.button>
                         </motion.div>
 
-                        {/* Chat Section */}
                         <motion.div className="max-w-2xl mx-auto mb-16" variants={itemVariants}>
                             <motion.div className="text-center mb-6" variants={itemVariants}>
                                 <p className="text-gray-600">
@@ -437,7 +427,6 @@ const Home = () => {
                             </motion.div>
                         </motion.div>
 
-                        {/* Features Section */}
                         <motion.div className="grid md:grid-cols-3 gap-8 mb-16" variants={itemVariants}>
                             {[
                                 { icon: ChefHat, title: "Smart Recipes", desc: "Get personalized recipe suggestions based on your preferences and dietary needs" },
@@ -460,14 +449,12 @@ const Home = () => {
                             ))}
                         </motion.div>
 
-                        {/* Recipe by Vegetables Section */}
                         <motion.div id="veggie-recipe-section" className="w-full mb-16" variants={itemVariants}>
                             <motion.div className="text-center mb-10" variants={itemVariants}>
                                 <h2 className="text-3xl font-bold text-[#1b5e20] mb-2">Create Recipe by Vegetables</h2>
                                 <p className="text-gray-600">Select your available vegetables and let AI create perfect recipes for you</p>
                             </motion.div>
 
-                            {/* Vegetable Selection */}
                             <motion.div className="bg-gray-50 rounded-2xl shadow-md p-8 mb-8" variants={itemVariants}>
                                 <div className="flex items-center justify-between mb-6">
                                     <h3 className="text-lg font-semibold text-gray-900">What vegetables do you have?</h3>
@@ -517,7 +504,6 @@ const Home = () => {
                                 )}
                             </motion.div>
 
-                            {/* Recipe Results */}
                             <AnimatePresence mode="wait">
                                 {isGenerating && (
                                     <motion.div
@@ -542,7 +528,7 @@ const Home = () => {
                                     >
                                         <ChefHat className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                         <h3 className="text-xl font-semibold text-gray-700 mb-2">Select vegetables to get started</h3>
-                                        <p className="text-gray-500">Choose your available ingredients and we'll suggest perfect recipes</p>
+                                        <p className="text-gray-500">Choose your available ingredients and we&apos;ll suggest perfect recipes</p>
                                     </motion.div>
                                 )}
 
@@ -571,16 +557,16 @@ const Home = () => {
                                                     transition={{ duration: 0.3 }}
                                                     whileHover={{ y: -5 }}
                                                 >
-                                                    {/* Recipe Image with real photo */}
                                                     <div className="h-52 bg-gradient-to-br from-green-400 to-green-600 relative overflow-hidden">
-                                                        <img
-                                                            src={recipe.image}
-                                                            alt={recipe.name}
-                                                            className="w-full h-full object-cover"
-                                                            onError={(e) => {
-                                                                e.target.style.display = 'none'
-                                                            }}
-                                                        />
+                                                        <div className="w-full h-full relative">
+                                                            <Image
+                                                                src={recipe.image}
+                                                                alt={recipe.name}
+                                                                fill
+                                                                className="object-cover"
+                                                                sizes="(max-width: 768px) 100vw, 50vw"
+                                                            />
+                                                        </div>
                                                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-5">
                                                             <div className="w-full">
                                                                 <h3 className="text-white text-2xl font-bold mb-2">{recipe.name}</h3>
@@ -593,7 +579,6 @@ const Home = () => {
                                                         </div>
                                                     </div>
 
-                                                    {/* Recipe Details */}
                                                     <div className="p-6">
                                                         <p className="text-gray-600 text-sm mb-4 leading-relaxed">{recipe.desc}</p>
 
@@ -648,7 +633,6 @@ const Home = () => {
                 <Footer />
             </motion.div>
 
-            {/* ChatGPT-Style Dialog */}
             <AnimatePresence>
                 {isDialogOpen && (
                     <motion.div
@@ -667,7 +651,6 @@ const Home = () => {
                             exit="exit"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            {/* Header - Clean and minimal */}
                             <motion.div
                                 className="flex items-center justify-between px-6 py-4 border-b border-gray-200"
                                 initial={{ opacity: 0 }}
@@ -685,7 +668,6 @@ const Home = () => {
                                 </motion.button>
                             </motion.div>
 
-                            {/* Chat Area - Light background like ChatGPT */}
                             <motion.div
                                 ref={dialogChatRef}
                                 className="flex-1 overflow-y-auto px-6 py-6 space-y-4 bg-gray-50"
@@ -715,7 +697,6 @@ const Home = () => {
                                 </AnimatePresence>
                             </motion.div>
 
-                            {/* Input Area - Sticky bottom like ChatGPT */}
                             <motion.div
                                 className="px-6 py-4 bg-white border-t border-gray-200"
                                 initial={{ opacity: 0, y: 10 }}
