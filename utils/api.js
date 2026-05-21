@@ -1,5 +1,28 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
+export const clearAuthStorage = () => {
+    if (typeof window === 'undefined') return;
+
+    try {
+        localStorage.removeItem('token');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('username');
+        localStorage.removeItem('userEmail');
+    } catch (e) {
+        // ignore storage errors
+    }
+};
+
+const isGuestAuth = () => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('authType') === 'guest';
+};
+
+const triggerSessionExpired = () => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent('flavour:session-expired'));
+};
+
 const apiCall = async (endpoint, options = {}) =>{
     try{
         const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -19,6 +42,14 @@ const apiCall = async (endpoint, options = {}) =>{
 
         const contentType = response.headers.get('content-type') || '';
         const isJson = contentType.includes('application/json');
+
+        // If the token expired or is invalid, clear local auth data and redirect to login
+        if (response.status === 401) {
+            if (typeof window !== 'undefined' && !isGuestAuth()) {
+                triggerSessionExpired();
+            }
+            throw new Error('Unauthorized');
+        }
 
         if (!response.ok) {
             let errMsg = `Request failed (${response.status})`;
@@ -146,6 +177,7 @@ export const saveUserData = (data) => {
         localStorage.setItem('userId', data._id);
         localStorage.setItem('username', data.username);
         localStorage.setItem('userEmail', data.email);
+        localStorage.setItem('authType', 'user');
     }
 };
 
@@ -167,6 +199,7 @@ export const clearUserData = () => {
         localStorage.removeItem('userId');
         localStorage.removeItem('username');
         localStorage.removeItem('userEmail');
+        localStorage.setItem('authType', 'guest');
     }
 };
 
@@ -314,3 +347,64 @@ export const generateRecipe = async (ingredients, userId, guestId) => {
         body: JSON.stringify({ ingredients, userId, guestId })
     });
 };
+
+// Decode JWT payload and return milliseconds until expiry (or null)
+export const getTokenExpiryMs = (token) => {
+    try {
+        if (!token) return null;
+        const parts = token.split('.');
+        if (parts.length < 2) return null;
+        const payload = parts[1];
+        // base64url -> base64 with padding
+        let b64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+        while (b64.length % 4 !== 0) {
+            b64 += '=';
+        }
+
+        const json = atob(b64);
+        const obj = JSON.parse(json);
+        if (!obj.exp) return null;
+        const ms = obj.exp * 1000 - Date.now();
+        return ms;
+    } catch (e) {
+        return null;
+    }
+};
+
+// Schedule automatic logout when token expires. Stores timer id on window to allow clearing.
+export const scheduleAutoLogout = (opts = { redirectTo: '/login' }) => {
+    if (typeof window === 'undefined') return;
+    try {
+        // clear any existing timer
+        if (window.__flavour_logout_timer) {
+            clearTimeout(window.__flavour_logout_timer);
+            window.__flavour_logout_timer = null;
+        }
+
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const ms = getTokenExpiryMs(token);
+        if (ms === null) return;
+
+        if (ms <= 0) {
+            clearAuthStorage();
+            triggerSessionExpired();
+            return;
+        }
+
+        // set timer to fire a little after expiry
+        const timeout = Math.max(1000, ms + 500);
+        window.__flavour_logout_timer = setTimeout(() => {
+            clearAuthStorage();
+            triggerSessionExpired();
+        }, timeout);
+    } catch (e) {
+        // ignore
+    }
+};
+
+export const getAuthType = () => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('authType');
+};
+
