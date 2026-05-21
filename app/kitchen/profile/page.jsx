@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { User, BookOpen, ChefHat, Flame, Zap, LogOut, Moon, Sun, Loader2, ArrowRight } from 'lucide-react'
+import { User, BookOpen, ChefHat, Flame, Zap, LogOut, Loader2, ArrowRight } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
@@ -10,6 +10,7 @@ import { useKitchenTheme } from '@/context/KitchenThemeContext'
 import { useGuestUser } from '@/context/GuestUserContext'
 import { getCurrentUser, getUserProfile, getUserData, isAuthenticated, clearUserData } from '@/utils/api'
 import Link from 'next/link'
+import ThemeSwitch from '@/components/ui/ThemeSwitch'
 
 const ProfilePage = () => {
     const router = useRouter()
@@ -121,10 +122,7 @@ const ProfilePage = () => {
                         </div>
                     </div>
                     {mounted && (
-                        <button onClick={toggleTheme}
-                            className="w-9 h-9 rounded-xl bg-white/70 dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06] flex items-center justify-center hover:border-emerald-400/30 transition-all">
-                            {theme === 'dark' ? <Sun className="w-4 h-4 text-yellow-400" /> : <Moon className="w-4 h-4 text-gray-500" />}
-                        </button>
+                        <ThemeSwitch theme={theme} toggleTheme={toggleTheme} />
                     )}
                 </div>
 
