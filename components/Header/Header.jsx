@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
 import { ChevronDown, Sparkles } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import { clearUserData, getUserData, isAuthenticated } from "@/utils/api"
+import { clearUserData, getUserData, isAuthenticated, scheduleAutoLogout } from "@/utils/api"
+import ConfirmDialog from "@/components/ui/ConfirmDialog"
 
 export default function Header({ overlay = false }) {
     const router = useRouter()
@@ -18,6 +20,7 @@ export default function Header({ overlay = false }) {
     const [loggedIn, setLoggedIn] = useState(false)
     const [username, setUsername] = useState("User")
     const [menuOpen, setMenuOpen] = useState(false)
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
     const logoWords = ["AI", "Chef", "Guide", "Expert"]
 
@@ -48,6 +51,17 @@ export default function Header({ overlay = false }) {
             }
             
             setUsername(user?.username || "User")
+            // schedule or clear auto-logout based on current auth state
+            if (typeof window !== 'undefined') {
+                if (isLoggedIn) {
+                    scheduleAutoLogout()
+                } else {
+                    if (window.__flavour_logout_timer) {
+                        clearTimeout(window.__flavour_logout_timer)
+                        window.__flavour_logout_timer = null
+                    }
+                }
+            }
         }
 
         const handleScroll = () => {
@@ -76,102 +90,117 @@ export default function Header({ overlay = false }) {
         }
     }, [session])
 
-    const handleLogout = async () => {
+    const handleLogoutClick = () => {
+        setShowLogoutConfirm(true)
+    }
+
+    const confirmLogout = async () => {
+        setShowLogoutConfirm(false)
         clearUserData()
-        await signOut({ redirect: false })  
+        await signOut({ redirect: false })
         setMenuOpen(false)
         setLoggedIn(false)
         router.push("/")
     }
 
     return (
-        <motion.header
-            initial={{ y: -100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className={`${overlay ? "sticky top-0 z-50 -mb-[72px]" : "sticky top-0 z-50"} transition-all duration-300 ${isScrolled
-                    ? "bg-white/12 backdrop-blur-xl border-b border-white/25 shadow-[0_8px_32px_rgba(0,0,0,0.12)]"
-                    : "bg-transparent border-b border-transparent"
-                }`}
-        >
-            <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4">
-                <Link href="/" className="flex items-center gap-2 sm:gap-3">
-                    <motion.div
-                        animate={{ rotate: [0, 10, -10, 0] }}
-                        transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                        className="relative"
-                    >
-                        <img src="/icon.png" alt="Flavour AI" className="w-8 h-8 sm:w-10 sm:h-10" />
+        <>
+            <motion.header
+                initial={{ y: -100, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className={`${overlay ? "sticky top-0 z-50 -mb-[72px]" : "sticky top-0 z-50"} transition-all duration-300 ${isScrolled
+                        ? "bg-white/12 backdrop-blur-xl border-b border-white/25 shadow-[0_8px_32px_rgba(0,0,0,0.12)]"
+                        : "bg-transparent border-b border-transparent"
+                    }`}
+            >
+                <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4">
+                    <Link href="/" className="flex items-center gap-2 sm:gap-3">
                         <motion.div
-                            className="absolute -top-1 -right-1"
-                            animate={{ scale: [1, 1.2, 1], opacity: [0.7, 1, 0.7] }}
-                            transition={{ duration: 2, repeat: Infinity }}
+                            animate={{ rotate: [0, 10, -10, 0] }}
+                            transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                            className="relative"
                         >
-                            <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-green-700" />
+                            <Image src="/icon.png" alt="Flavour AI" width={40} height={40} className="w-8 h-8 sm:w-10 sm:h-10" />
+                            <motion.div
+                                className="absolute -top-1 -right-1"
+                                animate={{ scale: [1, 1.2, 1], opacity: [0.7, 1, 0.7] }}
+                                transition={{ duration: 2, repeat: Infinity }}
+                            >
+                                <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-green-700" />
+                            </motion.div>
                         </motion.div>
-                    </motion.div>
 
-                    <div className="flex items-center">
-                        <span className="text-lg sm:text-xl lg:text-2xl font-bold text-green-900">Flavour</span>
-                        <span className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">.</span>
-                        <div className="relative min-w-[56px]">
-                            <AnimatePresence mode="wait">
-                                <motion.span
-                                    key={logoWordIndex}
-                                    initial={{ opacity: 0, y: 14, scale: 0.9 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: -14, scale: 0.9 }}
-                                    transition={{ duration: 0.35 }}
-                                    className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600 inline-block"
-                                >
-                                    {logoWords[logoWordIndex]}
-                                </motion.span>
-                            </AnimatePresence>
-                        </div>
-                    </div>
-                </Link>
-
-                {!loggedIn ? (
-                    <Link
-                        href="/signup"
-                        className="h-10 px-5 rounded-full bg-green-800 text-white text-sm font-semibold flex items-center hover:bg-green-900 transition-colors"
-                    >
-                        Get Started
-                    </Link>
-                ) : (
-                    <div className="relative" ref={dropdownRef}>
-                        <button
-                            type="button"
-                            onClick={() => setMenuOpen((prev) => !prev)}
-                            className="h-10 px-4 rounded-full border border-white/20 bg-white/10 text-green-900 text-sm font-semibold flex items-center gap-2 hover:bg-white/20 transition-colors"
-                        >
-                            <span>{username}</span>
-                            <ChevronDown className={`w-4 h-4 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
-                        </button>
-
-                        {menuOpen && (
-                            <div className="absolute right-0 mt-2 w-52 rounded-2xl border border-white/20 bg-white/85 backdrop-blur-xl shadow-xl p-2">
-                                <Link href="/profile" onClick={() => setMenuOpen(false)} className="block px-3 py-2 rounded-lg text-sm text-green-900 hover:bg-green-50">
-                                    Profile
-                                </Link>
-                                <Link href="/favourites" onClick={() => setMenuOpen(false)} className="block px-3 py-2 rounded-lg text-sm text-green-900 hover:bg-green-50">
-                                    Favourites
-                                </Link>
-                                <Link href="/settings" onClick={() => setMenuOpen(false)} className="block px-3 py-2 rounded-lg text-sm text-green-900 hover:bg-green-50">
-                                    Settings
-                                </Link>
-                                <button
-                                    type="button"
-                                    onClick={handleLogout}
-                                    className="w-full text-left px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50"
-                                >
-                                    Log out
-                                </button>
+                        <div className="flex items-center">
+                            <span className="text-lg sm:text-xl lg:text-2xl font-bold text-green-900">Flavour</span>
+                            <span className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">.</span>
+                            <div className="relative min-w-[56px]">
+                                <AnimatePresence mode="wait">
+                                    <motion.span
+                                        key={logoWordIndex}
+                                        initial={{ opacity: 0, y: 14, scale: 0.9 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: -14, scale: 0.9 }}
+                                        transition={{ duration: 0.35 }}
+                                        className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600 inline-block"
+                                    >
+                                        {logoWords[logoWordIndex]}
+                                    </motion.span>
+                                </AnimatePresence>
                             </div>
-                        )}
-                    </div>
-                )}
-            </div>
-        </motion.header>
+                        </div>
+                    </Link>
+
+                    {!loggedIn ? (
+                        <Link
+                            href="/signup"
+                            className="h-10 px-5 rounded-full bg-green-800 text-white text-sm font-semibold flex items-center hover:bg-green-900 transition-colors"
+                        >
+                            Get Started
+                        </Link>
+                    ) : (
+                        <div className="relative" ref={dropdownRef}>
+                            <button
+                                type="button"
+                                onClick={() => setMenuOpen((prev) => !prev)}
+                                className="h-10 px-4 rounded-full border border-white/20 bg-white/10 text-green-900 text-sm font-semibold flex items-center gap-2 hover:bg-white/20 transition-colors"
+                            >
+                                <span>{username}</span>
+                                <ChevronDown className={`w-4 h-4 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
+                            </button>
+
+                            {menuOpen && (
+                                <div className="absolute right-0 mt-2 w-52 rounded-2xl border border-white/20 bg-white/85 backdrop-blur-xl shadow-xl p-2">
+                                    <Link href="/kitchen" onClick={() => setMenuOpen(false)} className="block px-3 py-2 rounded-lg text-sm text-green-900 hover:bg-green-50">
+                                        Kitchen
+                                    </Link>
+                                    <Link href="/kitchen/profile" onClick={() => setMenuOpen(false)} className="block px-3 py-2 rounded-lg text-sm text-green-900 hover:bg-green-50">
+                                        Profile
+                                    </Link>
+                                    <button
+                                        type="button"
+                                        onClick={handleLogoutClick}
+                                        className="w-full text-left px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 cursor-pointer"
+                                    >
+                                        Log out
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </motion.header>
+
+            <ConfirmDialog
+                isOpen={showLogoutConfirm}
+                title="Logout?"
+                message="Are you sure you want to logout? You'll be taken back to the home page."
+                onConfirm={confirmLogout}
+                onCancel={() => setShowLogoutConfirm(false)}
+                confirmText="Yes, Logout"
+                cancelText="Cancel"
+                isDangerous={true}
+            />
+        </>
     )
 }
