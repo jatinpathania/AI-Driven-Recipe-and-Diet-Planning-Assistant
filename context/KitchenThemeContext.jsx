@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 const KitchenThemeContext = createContext();
 
@@ -13,28 +13,24 @@ export const useKitchenTheme = () => {
 };
 
 export const KitchenThemeProvider = ({ children }) => {
-    const [theme, setTheme] = useState('light');
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => {
-        const stored = localStorage.getItem('kitchen-theme') || 'light';
-        setTheme(stored);
-        setMounted(true);
-    }, []);
+    const [theme, setThemeState] = useState(() => {
+        if (typeof window === 'undefined') return 'light';
+        return localStorage.getItem('kitchen-theme') || 'light';
+    });
 
     const toggleTheme = () => {
         const next = theme === 'dark' ? 'light' : 'dark';
-        setTheme(next);
+        setThemeState(next);
         localStorage.setItem('kitchen-theme', next);
     };
 
-    const setThemeValue = (value) => {
-        setTheme(value);
+    const setTheme = (value) => {
+        setThemeState(value);
         localStorage.setItem('kitchen-theme', value);
     };
 
     return (
-        <KitchenThemeContext.Provider value={{ theme, setTheme: setThemeValue, toggleTheme, mounted }}>
+        <KitchenThemeContext.Provider value={{ theme, setTheme, toggleTheme, mounted: true }}>
             <div className={theme === 'dark' ? 'dark' : ''}>
                 {children}
             </div>

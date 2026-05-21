@@ -14,27 +14,45 @@ export const useGuestUser = () => {
 };
 
 export const GuestUserProvider = ({ children }) => {
-    const [guestId, setGuestId] = useState(null);
-    const [userId, setUserId] = useState(null);
-    const [isGuest, setIsGuest] = useState(true);
-
-    useEffect(() => {
+    const [guestId, setGuestId] = useState(() => {
+        if (typeof window === 'undefined') return null;
         const storedUserId = localStorage.getItem('userId');
         const storedToken = localStorage.getItem('token');
-
+        
         if (storedUserId && storedToken) {
-            setUserId(storedUserId);
-            setIsGuest(false);
+            return null;
         } else {
             let storedGuestId = localStorage.getItem('guestId');
-            
             if (!storedGuestId) {
                 storedGuestId = uuidv4();
                 localStorage.setItem('guestId', storedGuestId);
             }
-            
-            setGuestId(storedGuestId);
-            setIsGuest(true);
+            return storedGuestId;
+        }
+    });
+
+    const [userId, setUserId] = useState(() => {
+        if (typeof window === 'undefined') return null;
+        const storedUserId = localStorage.getItem('userId');
+        const storedToken = localStorage.getItem('token');
+        return (storedUserId && storedToken) ? storedUserId : null;
+    });
+
+    const [isGuest, setIsGuest] = useState(() => {
+        if (typeof window === 'undefined') return true;
+        const storedUserId = localStorage.getItem('userId');
+        const storedToken = localStorage.getItem('token');
+        return !(storedUserId && storedToken);
+    });
+
+    useEffect(() => {
+        const storedUserId = localStorage.getItem('userId');
+        const storedToken = localStorage.getItem('token');
+        
+        if (storedUserId && storedToken) {
+            localStorage.setItem('authType', 'user');
+        } else {
+            localStorage.setItem('authType', 'guest');
         }
     }, []);
 
@@ -42,18 +60,19 @@ export const GuestUserProvider = ({ children }) => {
         setUserId(newUserId);
         setIsGuest(false);
         localStorage.setItem('userId', newUserId);
+        localStorage.setItem('authType', 'user');
     };
 
     const logout = () => {
+        const newGuestId = uuidv4();
         setUserId(null);
         setIsGuest(true);
+        setGuestId(newGuestId);
         localStorage.removeItem('userId');
         localStorage.removeItem('token');
         localStorage.removeItem('username');
         localStorage.removeItem('userEmail');
-        
-        const newGuestId = uuidv4();
-        setGuestId(newGuestId);
+        localStorage.setItem('authType', 'guest');
         localStorage.setItem('guestId', newGuestId);
     };
 
