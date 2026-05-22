@@ -139,36 +139,50 @@ export default function Header({ overlay = false }) {
                         Get Started
                     </Link>
                 ) : (
-                    <div className="relative" ref={dropdownRef}>
-                        <button
-                            type="button"
-                            onClick={() => setMenuOpen((prev) => !prev)}
-                            className="h-10 px-4 rounded-full border border-white/20 bg-white/10 text-green-900 text-sm font-semibold flex items-center gap-2 hover:bg-white/20 transition-colors"
-                        >
-                            <span>{username}</span>
-                            <ChevronDown className={`w-4 h-4 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
-                        </button>
+                    <div className="flex items-center gap-3">
+                        <div className="relative" ref={dropdownRef}>
+                            <button
+                                type="button"
+                                onClick={() => setMenuOpen((prev) => !prev)}
+                                className="h-10 px-4 rounded-full border border-white/20 bg-white/10 text-green-900 text-sm font-semibold flex items-center gap-2 hover:bg-white/20 transition-colors"
+                            >
+                                <span>{username}</span>
+                                <ChevronDown className={`w-4 h-4 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
+                            </button>
 
-                        {menuOpen && (
-                            <div className="absolute right-0 mt-2 w-52 rounded-2xl border border-white/20 bg-white/85 backdrop-blur-xl shadow-xl p-2">
-                                <Link href="/profile" onClick={() => setMenuOpen(false)} className="block px-3 py-2 rounded-lg text-sm text-green-900 hover:bg-green-50">
-                                    Profile
-                                </Link>
-                                <Link href="/favourites" onClick={() => setMenuOpen(false)} className="block px-3 py-2 rounded-lg text-sm text-green-900 hover:bg-green-50">
-                                    Favourites
-                                </Link>
-                                <Link href="/settings" onClick={() => setMenuOpen(false)} className="block px-3 py-2 rounded-lg text-sm text-green-900 hover:bg-green-50">
-                                    Settings
-                                </Link>
-                                <button
-                                    type="button"
-                                    onClick={handleLogout}
-                                    className="w-full text-left px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50"
-                                >
-                                    Log out
-                                </button>
-                            </div>
-                        )}
+                            {menuOpen && (
+                                <div className="absolute right-0 mt-2 w-52 rounded-2xl border border-white/20 bg-white/85 backdrop-blur-xl shadow-xl p-2">
+                                    <Link href="/profile" onClick={() => setMenuOpen(false)} className="block px-3 py-2 rounded-lg text-sm text-green-900 hover:bg-green-50">
+                                        Profile
+                                    </Link>
+                                    <Link href="/favourites" onClick={() => setMenuOpen(false)} className="block px-3 py-2 rounded-lg text-sm text-green-900 hover:bg-green-50">
+                                        Favourites
+                                    </Link>
+                                    <Link href="/settings" onClick={() => setMenuOpen(false)} className="block px-3 py-2 rounded-lg text-sm text-green-900 hover:bg-green-50">
+                                        Settings
+                                    </Link>
+                                    <button
+                                        type="button"
+                                        onClick={handleLogout}
+                                        className="w-full text-left px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50"
+                                    >
+                                        Log out
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        <motion.div
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                        >
+                            <Link
+                                href="/kitchen"
+                                className="h-10 px-5 rounded-full bg-green-700 text-white text-sm font-semibold flex items-center hover:bg-green-800 transition-colors shadow-sm hover:shadow-md"
+                            >
+                                Open App
+                            </Link>
+                        </motion.div>
                     </div>
                 )}
             </div>
