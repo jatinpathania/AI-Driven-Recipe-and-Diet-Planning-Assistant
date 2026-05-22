@@ -56,6 +56,7 @@ const PremiumSidebar = () => {
     // Sync username
     useEffect(() => {
         if (session?.user?.name) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setUsername(session.user.name)
         } else {
             const stored = localStorage.getItem('flavourai_username') || localStorage.getItem('username')
@@ -217,7 +218,7 @@ const PremiumSidebar = () => {
             <div className="flex items-center gap-3 px-2 pt-3.5 border-t border-[#1A271E]">
                 <div onClick={() => { router.push('/kitchen/profile'); setMobileLeftOpen(false) }} className="flex items-center gap-3 flex-1 cursor-pointer group">
                     {avatar
-                        ? <img src={avatar} alt={username} className="w-9 h-9 rounded-full object-cover group-hover:ring-2 group-hover:ring-[#10B981]/50 transition-all" />
+                        ? <Image src={avatar} alt={username} className="w-9 h-9 rounded-full object-cover group-hover:ring-2 group-hover:ring-[#10B981]/50 transition-all" />
                         : <div className="w-9 h-9 rounded-full bg-[#F59E0B] text-black flex items-center justify-center font-bold text-sm group-hover:ring-2 group-hover:ring-[#10B981]/50 transition-all">{initial}</div>
                     }
                     <div className="min-w-0">
