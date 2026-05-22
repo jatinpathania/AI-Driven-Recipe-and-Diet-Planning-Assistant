@@ -1,11 +1,18 @@
 import connectDB from '@/lib/db/connectDB';
 import Recipe from '@/lib/models/Recipe';
-import { parseIngredientsToRecipe } from '@/lib/config/openrouter';
+import { parseIngredientsToRecipe } from '@/lib/config/qwen';
 import { NextResponse } from 'next/server';
 
 export async function POST(request) {
     try {
-        await connectDB();
+        let dbConnected = false;
+        try {
+            await connectDB();
+            dbConnected = true;
+        } catch (dbError) {
+            console.error('Graceful Fallback - MongoDB not running for recipe generation:', dbError.message);
+        }
+
         const { ingredients, userId, guestId } = await request.json();
         if (!ingredients) {
             return NextResponse.json(
@@ -23,28 +30,45 @@ export async function POST(request) {
             );
         }
 
-        if (userId || guestId) {
-            const recipeData = {
-                ...result.recipe,
-                userId: userId || null,
-                originalPrompt: ingredients
-            };
+        if (dbConnected && (userId || guestId)) {
+            try {
+                // Clean up time if it's a string like "30 mins"
+                let parsedTime = 30;
+                if (typeof result.recipe.time === 'string') {
+                    const match = result.recipe.time.match(/\d+/);
+                    if (match) parsedTime = parseInt(match[0], 10);
+                } else if (typeof result.recipe.time === 'number') {
+                    parsedTime = result.recipe.time;
+                }
 
-            const savedRecipe = await Recipe.create(recipeData);
-            return NextResponse.json(
-                {
-                    ...result,
-                    savedRecipe
-                },
-                { status: 201 }
-            );
+                const recipeData = {
+                    ...result.recipe,
+                    time: parsedTime,
+                    userId: userId || null,
+                    originalPrompt: ingredients
+                };
+
+                const savedRecipe = await Recipe.create(recipeData);
+                return NextResponse.json(
+                    {
+                        ...result,
+                        savedRecipe
+                    },
+                    { status: 201 }
+                );
+            } catch (saveError) {
+                console.error('Failed to save generated recipe to MongoDB, returning unsaved:', saveError.message);
+            }
         }
 
+        // Return the recipe without saving to DB if DB is offline
         return NextResponse.json(result, { status: 200 });
     } catch (error) {
+        console.error('Error in generate-recipe route:', error);
         return NextResponse.json(
-            { message: error.message },
+            { message: error.message || 'An error occurred during recipe generation' },
             { status: 500 }
         );
     }
 }
+
