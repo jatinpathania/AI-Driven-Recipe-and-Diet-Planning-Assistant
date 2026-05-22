@@ -1,4 +1,6 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = typeof window !== 'undefined'
+    ? '/api'
+    : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api');
 
 const apiCall = async (endpoint, options = {}) =>{
     try{
@@ -25,10 +27,16 @@ const apiCall = async (endpoint, options = {}) =>{
             if (isJson) {
                 try {
                     const errData = await response.json();
-                    errMsg = errData.message || errMsg;
-                } catch {}
+                    errMsg = errData?.message || errMsg;
+                } catch {
+                    // Ignore JSON parsing errors
+                }
             }
-            throw new Error(errMsg);
+            
+            // Create a custom error object that retains the status code
+            const error = new Error(errMsg);
+            error.status = response.status;
+            throw error;
         }
 
         if (isJson) {
@@ -37,10 +45,13 @@ const apiCall = async (endpoint, options = {}) =>{
 
         return { success: true };
     } catch (error) {
-        console.error('API call error:', error);
+        console.error(`API call error [${endpoint}]:`, error);
+        
+        // Handle specific fetch errors (e.g. network partition)
         if (error instanceof TypeError && /fetch/i.test(error.message || '')) {
             throw new Error(`Unable to reach API at ${API_BASE_URL}. Make sure backend is running.`);
         }
+        
         throw error;
     }
 };
