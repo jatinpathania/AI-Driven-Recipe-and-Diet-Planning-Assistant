@@ -81,10 +81,15 @@ export async function GET(request) {
 
         const mealPlan = await MealPlan.findOne(query).populate('meals.recipeId');
 
+        // Instead of returning 404, return an empty template so the frontend doesn't throw an error for new users
         if (!mealPlan) {
             return NextResponse.json(
-                { message: 'Meal plan not found' },
-                { status: 404 }
+                { 
+                    weekOf: startOfWeek,
+                    meals: [],
+                    isNew: true 
+                },
+                { status: 200 }
             );
         }
 
