@@ -41,7 +41,7 @@ const Home = () => {
             match: ['protein', 'muscle', '500'],
             reply: "Fueling those gains! Here are high-protein options:",
             recipes: [
-                { e: '🥩', t: 'Grilled Ribeye Steak', m: '40 min · 620 kcal' },
+                { e: '🍤', t: 'Garlic Butter Shrimp', m: '15 min · 340 kcal' },
                 { e: '🍗', t: 'Herb Roasted Chicken', m: '45 min · 480 kcal' },
                 { e: '🐟', t: 'Salmon with Quinoa', m: '25 min · 520 kcal' }
             ]
@@ -165,7 +165,7 @@ const Home = () => {
                     transition={{ duration: 0.6 }}
                 >
                     <div className="hero-badge-dot"></div>
-                    Powered by OpenRouter · Trusted by 100+ home cooks
+                    Building the Real Health, Trusted by 100+ home cooks
                 </motion.div>
 
                 <motion.h1
@@ -182,7 +182,8 @@ const Home = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.2 }}
                 >
-                    Just tell Flavour.AI what's in your fridge — it plans meals, generates recipes, tracks calories, and guides you step-by-step through cooking.
+                    Just tell Flavour.AI what's in your fridge 
+                    it plans meals, generates recipes, tracks calories, and guides you step-by-step through cooking.
                 </motion.p>
 
                 <motion.div
@@ -197,7 +198,7 @@ const Home = () => {
                             <div className="hc-dot"></div>
                             <div className="hc-dot"></div>
                         </div>
-                        <div className="hc-title">✦ Flavour AI — Try it now, no signup needed</div>
+                        <div className="hc-title">✦ Flavour AI</div>
                         <div className="hc-status">
                             <div className="hc-status-dot"></div> Live
                         </div>
@@ -337,7 +338,7 @@ const Home = () => {
                             <div className="step-badge">2</div>
                         </div>
                         <h3>Get personalized recipes</h3>
-                        <p>Flavour.AI generates tailored recipes with full instructions, nutrition info, and cook times — in seconds.</p>
+                        <p>Flavour.AI generates tailored recipes with full instructions, nutrition info, and cook times in seconds.</p>
                     </div>
                     <div className="how-step">
                         <div className="step-num-wrap">
