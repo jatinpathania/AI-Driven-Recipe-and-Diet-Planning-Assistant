@@ -1,7 +1,7 @@
 # FlavourAI – AI-Driven Recipe and Diet Planning Assistant
 
 **FlavourAI** is an intelligent, full-stack web application designed to help users discover personalized recipes and create balanced diet plans effortlessly.  
-By leveraging **Artificial Intelligence** powered by Google Generative AI and OpenRouter, the app analyzes available ingredients, dietary preferences, and health goals to suggest nutritious and delicious meal options while tracking nutritional information in real-time.
+By leveraging **Artificial Intelligence**, the app analyzes available ingredients, dietary preferences, and health goals to suggest nutritious and delicious meal options while tracking nutritional information in real-time.
 
 ---
 
@@ -58,8 +58,7 @@ This app is especially helpful for:
 - **Middleware:** Custom authentication middleware, CORS support
 
 ### **AI & Third-Party APIs**
-- **Recipe Generation & Chat:** Google Generative AI (@google/generative-ai)
-- **Advanced AI Models:** OpenRouter API (access to multiple LLMs)
+- **Advanced AI Models:** Hugging Face Qwen (`Qwen/Qwen2.5-7B-Instruct`) via the Hugging Face Router (uses `HF_KEY`)
 - **Calorie Estimation:** Integrated calorie calculation algorithms
 
 ### **Development & Tools**
@@ -83,7 +82,7 @@ This app is especially helpful for:
 │   ├── Auth/                     # Authentication UI
 │   └── ui/                       # Generic UI components
 ├── lib/                          # Utility functions & configurations
-│   ├── config/                   # API configurations (Gemini, OpenRouter, Cloudinary)
+│   ├── config/                   # API configurations (Qwen AI provider, Cloudinary)
 │   ├── db/                       # MongoDB connection
 │   ├── models/                   # Mongoose schemas
 │   └── middleware/               # Custom middleware
@@ -99,7 +98,7 @@ This app is especially helpful for:
 - Node.js (v18 or higher)
 - MongoDB instance (local or cloud)
 - Cloudinary account
-- API keys for Google Generative AI and OpenRouter
+-- API keys for Google Generative AI 
 
 ### Installation & Setup
 ```bash
@@ -124,9 +123,9 @@ npm run dev
 MONGODB_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret
 NEXTAUTH_SECRET=your_nextauth_secret
-OPENROUTER_API_KEY=your_openrouter_api_key
 GOOGLE_CLIENT_ID=your_google_oauth_client_id
 GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret
+HF_KEY=your_huggingface_router_key_here
 CLOUD_NAME=your_cloudinary_cloud_name
 CLOUD_API_KEY=your_cloudinary_api_key
 CLOUD_API_SECRET=your_cloudinary_api_secret

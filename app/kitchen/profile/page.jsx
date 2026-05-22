@@ -2,13 +2,15 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { BookOpen, ChefHat, Flame, Zap, LogOut, Moon, Sun, Loader2, ArrowRight } from 'lucide-react'
+import { User, BookOpen, ChefHat, Flame, Zap, LogOut, Moon, Sun, Loader2, ArrowRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
+import Image from 'next/image'
 import { useKitchenTheme } from '@/context/KitchenThemeContext'
 import { useGuestUser } from '@/context/GuestUserContext'
 import { getCurrentUser, getUserProfile, getUserData, isAuthenticated, clearUserData } from '@/utils/api'
 import Link from 'next/link'
+import ThemeSwitch from '@/components/ui/ThemeSwitch'
 
 const ProfilePage = () => {
     const router = useRouter()
@@ -59,12 +61,17 @@ const ProfilePage = () => {
             setLoading(false)
         }
         loadData()
-    }, [session])
+    }, [session, login])
 
     const isLoggedIn = session || isAuthenticated()
     const emailAuthData = getUserData()
-    const displayName = session?.user?.username || emailAuthData?.username || session?.user?.name || userData?.name || userData?.username || (isGuest ? 'Guest Chef' : 'Chef')
-    const displayEmail = session?.user?.email || emailAuthData?.email || userData?.email || (isGuest ? 'Guest account' : '')
+    const displayName = isGuest
+        ? 'Guest Chef'
+        : (session?.user?.username || emailAuthData?.username || session?.user?.name || userData?.name || userData?.username || 'Chef')
+    const displaySubtitle = isGuest ? 'guest account' : 'User'
+    const displayEmail = isGuest
+        ? ''
+        : (session?.user?.email || emailAuthData?.email || userData?.email || '')
     // Database is source of truth for profile image
     // It gets filled when: 1) Email signup (empty), 2) Google fills it if empty, 3) Custom upload
     // Once image exists, it's locked and won't be overwritten
@@ -108,8 +115,8 @@ const ProfilePage = () => {
                     </div>
                     {mounted && (
                         <button onClick={toggleTheme}
-                            className="w-9 h-9 rounded-xl bg-[#111A14] border border-[#1A271E] flex items-center justify-center hover:border-[#10B981] transition-all">
-                            {theme === 'dark' ? <Sun className="w-4 h-4 text-yellow-400" /> : <Moon className="w-4 h-4 text-[#829A8B]" />}
+                            className="w-9 h-9 rounded-xl bg-white/70 dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06] flex items-center justify-center hover:border-emerald-400/30 transition-all">
+                            {theme === 'dark' ? <Sun className="w-4 h-4 text-yellow-400" /> : <Moon className="w-4 h-4 text-gray-500" />}
                         </button>
                     )}
                 </div>
@@ -122,7 +129,7 @@ const ProfilePage = () => {
                                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#10B981] to-teal-500 p-[2px]">
                                         <div className="w-full h-full rounded-[14px] overflow-hidden bg-[#070B09] flex items-center justify-center">
                                             {profileImage ? (
-                                                <img src={profileImage} alt="" className="w-full h-full object-cover" />
+                                                <Image src={profileImage} alt={displayName} width={64} height={64} className="w-full h-full object-cover" />
                                             ) : (
                                                 <span className="text-2xl">👨‍🍳</span>
                                             )}
@@ -130,10 +137,10 @@ const ProfilePage = () => {
                                     </div>
                                 </div>
                                 <div className="flex-1">
-                                    <h2 className="text-xl font-bold text-[#F3F4F6]">{displayName}</h2>
-                                    {displayEmail && <p className="text-sm text-[#829A8B]">{displayEmail}</p>}
+                                    <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{displayName}</h2>
+                                    {displayEmail && <p className="text-sm text-gray-400 dark:text-gray-600">{displayEmail}</p>}
                                     <div className="flex items-center gap-2 mt-1.5">
-                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${isLoggedIn && !isGuest ? 'bg-[rgba(16,185,129,0.1)] text-[#10B981]' : 'bg-[#1A271E] text-[#829A8B]'}`}>
+                                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${isLoggedIn && !isGuest ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-black/[0.04] dark:bg-white/[0.04] text-gray-500 dark:text-gray-400'}`}>
                                             {isLoggedIn && !isGuest ? 'Pro Member' : 'Home Cook'}
                                         </span>
                                     </div>

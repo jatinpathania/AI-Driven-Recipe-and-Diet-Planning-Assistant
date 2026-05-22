@@ -5,7 +5,7 @@ import {
     Leaf, MessageSquare, BookOpen, Calendar, ChefHat, Timer, Flame, Play,
     Settings, Sparkles, Clock, PenTool, Zap, Camera, Mic, ArrowUp,
     TrendingUp, UtensilsCrossed, ShoppingCart, ArrowRight, X, ChevronRight,
-    Check, RefreshCw, LogOut, CalendarPlus, Bookmark, Loader2
+    Check, RefreshCw, LogOut, CalendarPlus,PanelRightOpen, PanelRightClose, Bookmark, Loader2
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter, usePathname } from 'next/navigation'
@@ -50,6 +50,7 @@ const KitchenPage = () => {
     const { mobileLeftOpen, setMobileLeftOpen, mobileRightOpen, setMobileRightOpen } = usePremiumLayout()
 
     // ── CHAT STATE ──
+    const [showOverview, setShowOverview] = useState(false)
     const [messages, setMessages] = useState([{
         role: 'ai',
         content: "Good evening! I noticed you had a light lunch today. How about something hearty but balanced for dinner? Based on your cooking habits, here are personalized recommendations curated just for you.",
@@ -79,24 +80,24 @@ const KitchenPage = () => {
             if (newWidth < 250) newWidth = 250
             if (newWidth > 500) newWidth = 500
             setRightSidebarWidth(newWidth)
-        }
+        };
         const handleMouseUp = () => {
             if (isRightResizing.current) {
-                isRightResizing.current = false
-                document.body.style.cursor = 'default'
-                document.body.style.userSelect = 'auto'
+                isRightResizing.current = false;
+                document.body.style.cursor = 'default';
+                document.body.style.userSelect = 'auto';
             }
-        }
-        document.addEventListener('mousemove', handleMouseMove)
-        document.addEventListener('mouseup', handleMouseUp)
+        };
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
         return () => {
-            document.removeEventListener('mousemove', handleMouseMove)
-            document.removeEventListener('mouseup', handleMouseUp)
-        }
-    }, [])
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, []);
 
     // ── MODALS & DRAWERS ──
-    const [selectedRecipe, setSelectedRecipe] = useState(null)
+    const [selectedRecipe, setSelectedRecipe] = useState(null);
     const [showGroceries, setShowGroceries] = useState(false)
     const [showSettings, setShowSettings] = useState(false)
     const [scanModal, setScanModal] = useState(false)
@@ -550,6 +551,14 @@ const KitchenPage = () => {
                     <div className="flex items-center gap-2">
                         <button onClick={() => setShowSettings(true)} className="p-2 rounded-lg hover:bg-[#1A271E] text-[#829A8B] hover:text-white transition-all"><Settings size={20} /></button>
                         <button onClick={() => setMobileRightOpen(true)} className="xl:hidden p-2 rounded-lg bg-[#111A14] border border-[#24362A] text-[#829A8B] hover:text-white transition-all"><TrendingUp size={16} /></button>
+                        <button
+                            onClick={() => setShowOverview(!showOverview)}
+                            className="xl:hidden p-2 rounded-lg hover:bg-[#1A271E] transition-colors text-[#829A8B] hover:text-white"
+                        >
+                            {showOverview
+                                ? <PanelRightClose className="w-5 h-5 text-[#829A8B] hover:text-white pointer-events-none" />
+                                : <PanelRightOpen className="w-5 h-5 text-[#829A8B] hover:text-white pointer-events-none" />}
+                        </button>
                     </div>
                 </header>
 
@@ -622,7 +631,7 @@ const KitchenPage = () => {
                         )}
 
                         <div ref={chatFeedEndRef} />
-                        </div>
+                    </div>
                     </div>
                 </div>
 

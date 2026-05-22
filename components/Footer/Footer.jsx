@@ -20,7 +20,7 @@ const Footer = ({ loading = false }) => {
                             <h4 className="text-sm font-semibold uppercase tracking-wide text-[#1b5e20]">Explore</h4>
                             <div className="mt-3 space-y-2 text-sm">
                                 <Link href="/kitchen" className="block text-[#4f6657] hover:text-[#1b5e20]">Kitchen</Link>
-                                <Link href="/profile" className="block text-[#4f6657] hover:text-[#1b5e20]">Profile</Link>
+                                <Link href="/kitchen/profile" className="block text-[#4f6657] hover:text-[#1b5e20]">Profile</Link>
                                 <Link href="/favourites" className="block text-[#4f6657] hover:text-[#1b5e20]">Favourites</Link>
                                 <Link href="/settings" className="block text-[#4f6657] hover:text-[#1b5e20]">Settings</Link>
                             </div>

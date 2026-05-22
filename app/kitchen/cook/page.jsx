@@ -64,6 +64,17 @@ const CookPage = () => {
     const startCooking = () => {
         setCookingStarted(true)
         setElapsedRunning(true)
+        
+        // Auto-start timer with recipe cooking time
+        if (recipe && (recipe.time || recipe.cookTime)) {
+            const timeStr = (recipe.time || recipe.cookTime).toString()
+            const minutes = parseInt(timeStr) || 0
+            if (minutes > 0) {
+                setTimerTarget(minutes * 60)
+                setTimerSeconds(0)
+                setTimerRunning(true)
+            }
+        }
     }
 
     const toggleStepComplete = (index) => {

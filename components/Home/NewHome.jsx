@@ -3,13 +3,16 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Send, X, ArrowUp, Check } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useSession } from 'next-auth/react'
 import Header from "@/components/Header/Header"
 import Footer from '@/components/Footer/Footer'
 import Link from 'next/link'
+import { isAuthenticated } from '@/utils/api'
 
 const Home = () => {
+    const { data: session } = useSession()
     const [messages, setMessages] = useState([
-        { role: 'ai', content: "👋 Hi! Tell me what ingredients you have and I'll suggest what to cook. Or just ask me anything about food!" }
+        { role: 'ai', content: "👋 Hi! Tell me what ingredients you have and I&apos;ll suggest what to cook. Or just ask me anything about food!" }
     ])
     const [input, setInput] = useState('')
     const [isTyping, setIsTyping] = useState(false)
@@ -17,6 +20,12 @@ const Home = () => {
     const [isSignupOpen, setIsSignupOpen] = useState(false)
     const [signupSuccess, setSignupSuccess] = useState(false)
     const [navScrolled, setNavScrolled] = useState(false)
+    
+    const [clientLoggedIn, setClientLoggedIn] = useState(null)
+
+    useEffect(() => {
+        queueMicrotask(() => setClientLoggedIn(!!(session?.user || isAuthenticated())))
+    }, [session])
 
     const HERO_RESPONSES = [
         {
@@ -66,7 +75,7 @@ const Home = () => {
         },
         {
             match: ['egg', 'spinach', 'feta'],
-            reply: "Classic combo! Here's what I'd make:",
+            reply: "Classic combo! Here&apos;s what I&apos;d make:",
             recipes: [
                 { e: '🍳', t: 'Spinach & Feta Omelette', m: '10 min · 290 kcal' },
                 { e: '🥧', t: 'Feta & Egg Frittata', m: '20 min · 310 kcal' },
@@ -128,7 +137,7 @@ const Home = () => {
                     hasSignup: true
                 }])
             }, 1400)
-        }, 800 + Math.random() * 500)
+        }, 800)
     }
 
     const getHeroResponse = (msg) => {
@@ -139,7 +148,7 @@ const Home = () => {
         return {
             reply: "Great choice! Here are some delicious ideas based on what you said:",
             recipes: [
-                { e: '🥘', t: 'Chef\'s Special Stew', m: '35 min · 410 kcal' },
+                { e: '🥘', t: "Chef&apos;s Special Stew", m: '35 min · 410 kcal' },
                 { e: '🥗', t: 'Fresh Garden Salad', m: '10 min · 180 kcal' },
                 { e: '🍜', t: 'Noodle Bowl', m: '20 min · 380 kcal' }
             ]
@@ -165,7 +174,7 @@ const Home = () => {
                     transition={{ duration: 0.6 }}
                 >
                     <div className="hero-badge-dot"></div>
-                    Building the Real Health, Trusted by 100+ home cooks
+                    Confident Cooking, Better Living.
                 </motion.div>
 
                 <motion.h1
@@ -182,6 +191,7 @@ const Home = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.2 }}
                 >
+                    Just tell Flavour.AI what&apos;s in your fridge — it plans meals, generates recipes, tracks calories, and guides you step-by-step through cooking.
                     Just tell Flavour.AI what's in your fridge 
                     it plans meals, generates recipes, tracks calories, and guides you step-by-step through cooking.
                 </motion.p>
@@ -270,7 +280,7 @@ const Home = () => {
                         <input
                             className="hc-input"
                             type="text"
-                            placeholder="e.g. 'I have eggs, spinach and feta...'"
+                            placeholder="e.g. &apos;I have eggs, spinach and feta...&apos;"
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
@@ -294,12 +304,7 @@ const Home = () => {
                         <div className="proof-av">🧑</div>
                         <div className="proof-av">👩‍🦳</div>
                     </div>
-                    <div className="proof-text">Loved by <strong>100+</strong> home cooks</div>
-                    <div className="proof-sep"></div>
-                    <div className="proof-stat">
-                        <div className="proof-stat-val">4.9★</div>
-                        <div className="proof-stat-lbl">App Rating</div>
-                    </div>
+                    
                     <div className="proof-sep"></div>
                     <div className="proof-stat">
                         <div className="proof-stat-val">10+</div>
@@ -357,12 +362,12 @@ const Home = () => {
                 <p className="section-sub">Six powerful tools, all working together seamlessly — and all powered by AI.</p>
                 <div className="features-grid">
                     {[
-                        { icon: '✦', title: 'AI Chef Chat', desc: 'A real-time AI chef that answers any food question, generates custom recipes from your ingredients, and guides you through cooking.', tag: 'Powered by Claude' },
+                        { icon: '✦', title: 'AI Chef Chat', desc: 'A real-time AI chef that answers any food question, generates custom recipes from your ingredients, and guides you through cooking.', tag: 'Qwen 2.5' },
                         { icon: '⏱️', title: 'Smart Cooking Timer', desc: 'Visual countdown timers that sync with your recipe steps. Audio alerts so you never overcook again.', tag: 'Step-by-step' },
                         { icon: '🔥', title: 'Calorie Tracker', desc: 'Log meals in seconds, track macros, set daily goals and visualize your weekly nutrition patterns — no spreadsheets needed.', tag: 'Macro tracking' },
                         { icon: '📅', title: 'Weekly Meal Planner', desc: 'Drag-and-drop meal planning for the whole week. The AI can auto-fill your plan based on your goals and preferences.', tag: 'Auto-planning' },
                         { icon: '📝', title: 'Recipe Notes', desc: 'Save recipes, shopping lists, and meal plan notes in one place. Organized by category, searchable, always with you.', tag: 'Searchable' },
-                        { icon: '🍽️', title: 'Recipe Library', desc: 'Browse hundreds of curated recipes filtered by diet, time, difficulty and cuisine. Each one links directly to timers and calorie tracking.', tag: '500+ recipes' }
+                        { icon: '🍽️', title: 'Recipe Library', desc: 'Browse hundreds of curated recipes filtered by diet, time, difficulty and cuisine. Each one links directly to timers and calorie tracking.', tag: '10+ recipes' }
                     ].map((feat, i) => (
                         <motion.div
                             key={i}
@@ -383,16 +388,16 @@ const Home = () => {
 
             <section id="testimonials" className="section testimonials-section">
                 <div className="section-label">Real people, real meals</div>
-                <h2 className="section-title">They tried it.<br />They're hooked.</h2>
-                <p className="section-sub">Join thousands of home cooks who've transformed their relationship with food.</p>
+                <h2 className="section-title">They tried it.<br />They&apos;re hooked.</h2>
+                <p className="section-sub">Join these home cooks who&apos;ve transformed their relationship with food.</p>
                 <div className="testi-grid">
                     {[
-                        { stars: 5, text: "I opened the fridge, typed what I had, and had a gourmet pasta on the table in 25 minutes. This thing is genuinely magic.", name: 'Sarah M.', role: 'Home cook · London', avatar: '👩' },
-                        { stars: 5, text: "The calorie tracker + meal planner combo changed everything for my fitness goals. I don't have to think about what to eat anymore.", name: 'James R.', role: 'Fitness enthusiast · NYC', avatar: '🧑' },
-                        { stars: 5, text: "As a busy mum of three, this is a lifesaver. The weekly meal planner alone saves me hours every week. Absolutely worth it.", name: 'Priya K.', role: 'Busy parent · Toronto', avatar: '👩‍🦱' },
-                        { stars: 5, text: "The AI actually understands what I mean when I say 'something cozy with lentils'. I've discovered so many dishes I never would have tried.", name: 'Marco T.', role: 'Food lover · Milan', avatar: '👨' },
-                        { stars: 5, text: "The cooking timer syncing with recipe steps is such a simple idea but no other app does it. I burned things all the time before this.", name: 'Linda W.', role: 'Recipe collector · Austin', avatar: '👩‍🦳' },
-                        { stars: 4, text: "I was skeptical about AI cooking apps but this one actually knows food. The recipes aren't generic — they feel like they were made for me.", name: 'Alex C.', role: 'Amateur chef · Singapore', avatar: '🧑‍🍳' }
+                        { stars: 5, text: "Really loving this app. I typed what I had in the fridge and it suggested a simple, tasty paneer recipe that my whole family liked — no fuss, no weird ingredients. The timers and shopping list saved me a ton of time. Highly recommend for busy homes.", name: 'Anmol', role: 'Home cook · Punjab', avatar: '👨' },
+                        { stars: 5, text: "This app is a lifesaver on work nights. The calorie tracker + step-by-step timers help me eat better without overthinking meals. Recipes are practical and quick — exactly what I need after a long day.", name: 'Ansh', role: 'Working professional · Delhi', avatar: '🧑' },
+                        { stars: 5, text: "I wanted more high-protein, home-style meals and this app delivers. The meal planner filled my week with easy recipes I can actually make, and the portion info is useful for my workouts. Clean UI, no bloat — very happy.", name: 'Sunny', role: 'Fitness enthusiast · Haryana', avatar: '💪' },
+                        { stars: 5, text: "Love how simple and realistic the recipes are — nothing fancy, just good food with ingredients I already have. The AI adapts well when I swap items, and saving recipes for offline use is great up here.", name: 'Abhishek', role: 'Home cook · Himachal Pradesh', avatar: '🧑‍🍳' },
+                        { stars: 5, text: "Makes weekly meal prep so much easier. I use the grocery list feature and the app auto-fills meals based on my preferences — saved me hours. Taste and portions feel homemade, not like generic app recipes.", name: 'Vansh', role: 'Meal planner · Punjab', avatar: '🥗' },
+                        { stars: 5, text: "Honestly impressed — the AI actually understands what I mean when I ask for quick, healthy dinners. The recipe steps are short and clear, and the built-in timers keep me on track. Been recommending it to friends already.", name: 'Vaibhav', role: 'Home cook · Delhi', avatar: '👨' }
                     ].map((testi, i) => (
                         <motion.div
                             key={i}
@@ -403,7 +408,7 @@ const Home = () => {
                             transition={{ duration: 0.5, delay: i * 0.1 }}
                         >
                             <div className="testi-stars">{'★'.repeat(testi.stars)}{'☆'.repeat(5 - testi.stars)}</div>
-                            <p className="testi-text">"{testi.text}"</p>
+                                            <p className="testi-text">&ldquo;{testi.text}&rdquo;</p>
                             <div className="testi-author">
                                 <div className="testi-av">{testi.avatar}</div>
                                 <div>
@@ -416,21 +421,23 @@ const Home = () => {
                 </div>
             </section>
 
-            <section id="cta" className="cta-section">
-                <h2>Start cooking smarter<br />today. It's free.</h2>
-                <p>No credit card. No commitment. Just better meals starting tonight.</p>
-                <div className="cta-form">
-                    <input
-                        className="cta-email"
-                        type="email"
-                        placeholder="Enter your email..."
-                    />
-                    <button className="cta-btn" onClick={() => setIsSignupOpen(true)}>
-                        Get started free →
-                    </button>
-                </div>
-                <p className="cta-note">🔒 No spam. Unsubscribe anytime. Free forever plan included.</p>
-            </section>
+            {clientLoggedIn === false && (
+                <section id="cta" className="cta-section">
+                    <h2>Start cooking smarter<br />today. It&apos;s free.</h2>
+                    <p>No credit card. No commitment. Just better meals starting tonight.</p>
+                    <div className="cta-form">
+                        <input
+                            className="cta-email"
+                            type="email"
+                            placeholder="Enter your email..."
+                        />
+                        <button className="cta-btn" onClick={() => setIsSignupOpen(true)}>
+                            Get started free →
+                        </button>
+                    </div>
+                    <p className="cta-note">🔒 No spam. Unsubscribe anytime. Free forever plan included.</p>
+                </section>
+            )}
 
             <Footer />
 
@@ -490,9 +497,9 @@ const Home = () => {
                                 <div className="success-state">
                                     <div className="success-emoji">🎉</div>
                                     <h3>Welcome to Flavour.AI!</h3>
-                                    <p>Your account is ready. You're about to eat better, cook smarter, and waste less food.<br /><br /><strong>Check your email</strong> for your login link!</p>
+                                    <p>Your account is ready. You&apos;re about to eat better, cook smarter, and waste less food.<br /><br /><strong>Check your email</strong> for your login link!</p>
                                     <button onClick={() => { setIsSignupOpen(false); setSignupSuccess(false); }} className="modal-submit" style={{ marginTop: '20px' }}>
-                                        Let's cook! →
+                                        Let&apos;s cook! →
                                     </button>
                                 </div>
                             )}

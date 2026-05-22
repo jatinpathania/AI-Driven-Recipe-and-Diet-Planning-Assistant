@@ -32,18 +32,8 @@ export async function POST(request) {
 
         if (dbConnected && (userId || guestId)) {
             try {
-                // Clean up time if it's a string like "30 mins"
-                let parsedTime = 30;
-                if (typeof result.recipe.time === 'string') {
-                    const match = result.recipe.time.match(/\d+/);
-                    if (match) parsedTime = parseInt(match[0], 10);
-                } else if (typeof result.recipe.time === 'number') {
-                    parsedTime = result.recipe.time;
-                }
-
                 const recipeData = {
                     ...result.recipe,
-                    time: parsedTime,
                     userId: userId || null,
                     originalPrompt: ingredients
                 };
@@ -71,4 +61,3 @@ export async function POST(request) {
         );
     }
 }
-

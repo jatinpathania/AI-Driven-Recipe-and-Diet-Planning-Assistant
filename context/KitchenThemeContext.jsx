@@ -1,8 +1,31 @@
 "use client"
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useSyncExternalStore } from 'react';
 
 const KitchenThemeContext = createContext();
+
+let themeValue = 'light';
+
+const getSnapshot = () => {
+    return themeValue;
+};
+
+const getServerSnapshot = () => {
+    return 'light';
+};
+
+const subscribe = (callback) => {
+    // Initialize theme from localStorage when first subscribed (on mount)
+    themeValue = localStorage.getItem('kitchen-theme') || 'light';
+    
+    const handleStorageChange = () => {
+        themeValue = localStorage.getItem('kitchen-theme') || 'light';
+        callback();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+};
 
 export const useKitchenTheme = () => {
     const context = useContext(KitchenThemeContext);
@@ -13,28 +36,21 @@ export const useKitchenTheme = () => {
 };
 
 export const KitchenThemeProvider = ({ children }) => {
-    const [theme, setTheme] = useState('light');
-    const [mounted, setMounted] = useState(false);
+    const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
-    useEffect(() => {
-        const stored = localStorage.getItem('kitchen-theme') || 'light';
-        setTheme(stored);
-        setMounted(true);
-    }, []);
+    const setTheme = (value) => {
+        themeValue = value;
+        localStorage.setItem('kitchen-theme', value);
+        window.dispatchEvent(new Event('storage'));
+    };
 
     const toggleTheme = () => {
         const next = theme === 'dark' ? 'light' : 'dark';
         setTheme(next);
-        localStorage.setItem('kitchen-theme', next);
-    };
-
-    const setThemeValue = (value) => {
-        setTheme(value);
-        localStorage.setItem('kitchen-theme', value);
     };
 
     return (
-        <KitchenThemeContext.Provider value={{ theme, setTheme: setThemeValue, toggleTheme, mounted }}>
+        <KitchenThemeContext.Provider value={{ theme, setTheme, toggleTheme, mounted: true }}>
             <div className={theme === 'dark' ? 'dark' : ''}>
                 {children}
             </div>

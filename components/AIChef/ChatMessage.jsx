@@ -204,6 +204,7 @@ const ChatMessage = ({ message, userInitial = 'C' }) => {
                                         <span className="w-4 h-4 rounded-full bg-[#10B981] text-[#070B09] flex items-center justify-center text-[9px] font-bold mt-0.5 flex-shrink-0">
                                             {idx + 1}
                                         </span>
+<<<<<<< HEAD
                                         <div className="flex flex-col">
                                             <p className="leading-relaxed">
                                                 {typeof step === 'string' ? step : step.step || step.instruction || step.text}
@@ -214,6 +215,9 @@ const ChatMessage = ({ message, userInitial = 'C' }) => {
                                                 </span>
                                             ) : null}
                                         </div>
+=======
+                                        <p className="leading-relaxed">{step}</p>
+>>>>>>> 34bba74216b792d9d7a49a9c83688fab572b1cec
                                     </div>
                                 ))}
                             </div>

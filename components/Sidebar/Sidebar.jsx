@@ -1,51 +1,111 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
-import { MessageSquare, UtensilsCrossed, Calendar, Timer, Flame, Menu, X, LogOut, ChefHat } from 'lucide-react'
+import React, { useState, useEffect, useMemo } from 'react'
+import { MessageSquare, UtensilsCrossed, Calendar, Timer, Flame, Menu, X, ChefHat } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useGuestUser } from '@/context/GuestUserContext'
+import { getCurrentUser, scheduleAutoLogout } from '@/utils/api'
 import { useSession, signOut } from 'next-auth/react'
-import Image from 'next/image'
+import SidebarContent from './SidebarContent'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
+
+const LOGO_WORDS = ['AI', 'Cook', 'Plan', 'Track']
 
 const Sidebar = () => {
     const pathname = usePathname()
     const router = useRouter()
     const { data: session } = useSession()
-    const { logout, userId } = useGuestUser()
+    const { logout, userId, isGuest } = useGuestUser()
     const [isOpen, setIsOpen] = useState(false)
-    const [todayCalories, setTodayCalories] = useState(0)
-    const [username, setUsername] = useState('')
+    const [userData, setUserData] = useState(null)
     const [logoWordIndex, setLogoWordIndex] = useState(0)
-
-    const logoWords = ['AI', 'Cook', 'Plan', 'Track']
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
     useEffect(() => {
         const interval = setInterval(() => {
-            setLogoWordIndex(prev => (prev + 1) % logoWords.length)
+            setLogoWordIndex(prev => (prev + 1) % LOGO_WORDS.length)
         }, 2500)
         return () => clearInterval(interval)
     }, [])
 
     useEffect(() => {
-        if (session?.user?.name) {
-            setUsername(session.user.name)
-        } else {
-            const stored = localStorage.getItem('flavourai_username')
-            setUsername(stored || 'Chef')
+        if (isGuest) {
+            return
         }
-    }, [session])
+
+        const fetchUserData = async () => {
+            try {
+                if (typeof window !== 'undefined') {
+                    const result = await getCurrentUser()
+                    if (result?.success) {
+                        setUserData(result.data)
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch user data:', error)
+            }
+        }
+
+        fetchUserData()
+    }, [isGuest])
 
     useEffect(() => {
+        if (typeof window === 'undefined' || isGuest) return
+
+        const syncLogoutTimer = () => {
+            const token = localStorage.getItem('token')
+
+            if (token) {
+                scheduleAutoLogout()
+            } else if (window.__flavour_logout_timer) {
+                clearTimeout(window.__flavour_logout_timer)
+                window.__flavour_logout_timer = null
+            }
+        }
+
+        syncLogoutTimer()
+        window.addEventListener('storage', syncLogoutTimer)
+
+        return () => {
+            window.removeEventListener('storage', syncLogoutTimer)
+        }
+    }, [isGuest, session, userData])
+
+    const username = useMemo(() => {
+        return session?.user?.username || userData?.username || session?.user?.name || 'Chef'
+    }, [session, userData])
+
+    const displayName = isGuest ? 'Guest Chef' : username
+    const displaySubtitle = isGuest ? 'guest account' : 'User'
+
+    const profileImage = useMemo(() => {
+        return session?.user?.image || userData?.profileImage || null
+    }, [session, userData])
+
+    const todayCalories = useMemo(() => {
+        if (typeof window === 'undefined') return 0
         try {
             const logs = JSON.parse(localStorage.getItem('flavourai_calorie_logs') || '[]')
             const today = new Date().toDateString()
             const todayLogs = logs.filter(l => new Date(l.date).toDateString() === today)
-            setTodayCalories(todayLogs.reduce((s, l) => s + (l.calories || 0), 0))
-        } catch { }
-    }, [pathname])
+            return todayLogs.reduce((s, l) => s + (l.calories || 0), 0)
+        } catch {
+            return 0
+        }
+    }, [])
 
-    const handleLogout = async () => {
+    const handleLogoutClick = () => {
+        if (!isGuest) {
+            setShowLogoutConfirm(true)
+        } else {
+            logout()
+            router.push('/')
+        }
+    }
+
+    const confirmLogout = async () => {
+        setShowLogoutConfirm(false)
         logout()
         await signOut({ redirect: false })
         router.push('/')
@@ -86,80 +146,13 @@ const Sidebar = () => {
         )
     }
 
-    const avatar = session?.user?.image
+    const avatar = profileImage
     const initial = (username || 'C')[0].toUpperCase()
-
-    const SidebarContent = () => (
-        <div className="flex flex-col h-full relative overflow-hidden bg-gradient-to-b from-white/80 via-white/60 to-emerald-50/40 dark:from-[#0c1117] dark:via-[#0f1419] dark:to-[#0c1a14] border-r border-black/[0.06] dark:border-white/[0.04] backdrop-blur-2xl">
-            <div className="absolute top-[-20%] left-[-30%] w-[200px] h-[200px] bg-emerald-200/20 dark:bg-emerald-500/[0.04] rounded-full blur-[80px] pointer-events-none" />
-            <div className="absolute bottom-[-10%] right-[-20%] w-[180px] h-[180px] bg-blue-200/15 dark:bg-blue-500/[0.03] rounded-full blur-[80px] pointer-events-none" />
-            <div className="relative z-10 flex flex-col h-full">
-                <div className="p-4 pb-3">
-                    <Link href="/" className="flex items-center gap-2.5 group">
-                        <div className="relative w-8 h-8 rounded-xl overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 dark:shadow-emerald-500/10">
-                            <Image src="/icon.png" alt="Flavour" width={20} height={20} className="relative z-10" />
-                            <div className="absolute top-0 right-0 w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                        </div>
-                        <div className="leading-none">
-                            <div className="flex items-baseline gap-0">
-                                <span className="text-[15px] font-bold text-gray-800 dark:text-gray-100">Flavour</span>
-                                <span className="text-[15px] font-bold text-emerald-500">.</span>
-                            </div>
-                            <div className="h-4 overflow-hidden">
-                                <div className="transition-transform duration-500 ease-in-out" style={{ transform: `translateY(-${logoWordIndex * 16}px)` }}>
-                                    {logoWords.map((w, i) => (
-                                        <p key={i} className="text-[10px] font-medium text-emerald-500/70 h-4 leading-4">{w}</p>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </Link>
-                </div>
-
-                <nav className="flex-1 px-3 space-y-5 overflow-y-auto no-scrollbar">
-                    <div>
-                        <p className="text-[10px] font-medium text-gray-400 dark:text-gray-600 uppercase tracking-wider px-3 mb-2">Main</p>
-                        <div className="space-y-0.5">
-                            {mainNav.map(item => <NavLink key={item.path} item={item} />)}
-                        </div>
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-medium text-gray-400 dark:text-gray-600 uppercase tracking-wider px-3 mb-2">Tools</p>
-                        <div className="space-y-0.5">
-                            {toolNav.map(item => <NavLink key={item.path} item={item} />)}
-                        </div>
-                    </div>
-                </nav>
-
-                <div className="p-3 border-t border-black/[0.04] dark:border-white/[0.04]">
-                    <div className="flex items-center gap-3 group relative">
-                        <Link href="/kitchen/profile" onClick={() => setIsOpen(false)} className="flex items-center gap-3 flex-1 px-2 py-2 rounded-xl hover:bg-white/40 dark:hover:bg-white/[0.04] transition-all">
-                            {avatar ? (
-                                <Image src={avatar} alt={username} width={32} height={32} className="rounded-lg" />
-                            ) : (
-                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-emerald-500/20 dark:shadow-emerald-500/10">
-                                    {initial}
-                                </div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-700 dark:text-gray-200 truncate">{username}</p>
-                                <p className="text-[10px] text-emerald-500 font-medium">Pro Plan ✦</p>
-                            </div>
-                        </Link>
-                        <button onClick={handleLogout}
-                            className="p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-500/10 text-gray-400 hover:text-red-500 transition-all">
-                            <LogOut className="w-4 h-4" />
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    )
 
     return (
         <>
             <div className="hidden md:block w-56 flex-shrink-0 h-screen">
-                <SidebarContent />
+                <SidebarContent mainNav={mainNav} toolNav={toolNav} isActive={isActive} NavLink={NavLink} logoWordIndex={logoWordIndex} logoWords={LOGO_WORDS} avatar={avatar} initial={initial} displayName={displayName} displaySubtitle={displaySubtitle} setIsOpen={setIsOpen} handleLogout={handleLogoutClick} />
             </div>
 
             <button onClick={() => setIsOpen(true)}
@@ -175,9 +168,22 @@ const Sidebar = () => {
                             className="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.04] z-10 transition-colors">
                             <X className="w-4 h-4 text-gray-400" />
                         </button>
-                        <SidebarContent />
+                        <SidebarContent mainNav={mainNav} toolNav={toolNav} isActive={isActive} NavLink={NavLink} logoWordIndex={logoWordIndex} logoWords={LOGO_WORDS} avatar={avatar} initial={initial} displayName={displayName} displaySubtitle={displaySubtitle} setIsOpen={setIsOpen} handleLogout={handleLogoutClick} />
                     </div>
                 </>
+            )}
+
+            {!isGuest && (
+                <ConfirmDialog
+                    isOpen={showLogoutConfirm}
+                    title="Logout?"
+                    message="Are you sure you want to logout? You'll be taken back to the home page."
+                    onConfirm={confirmLogout}
+                    onCancel={() => setShowLogoutConfirm(false)}
+                    confirmText="Yes, Logout"
+                    cancelText="Cancel"
+                    isDangerous={true}
+                />
             )}
         </>
     )
