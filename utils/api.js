@@ -222,14 +222,14 @@ export const isAuthenticated = () => {
 };
 
 export const createCookingSession = async (recipeId, userId, guestId) => {
-    return await apiCall('/sessions', {
+    return await apiCall('/cooking-sessions', {
         method: 'POST',
         body: JSON.stringify({ recipeId, userId, guestId })
     });
 };
 
 export const getCookingSession = async (sessionId) => {
-    return await apiCall(`/sessions/${sessionId}`, {
+    return await apiCall(`/cooking-sessions/${sessionId}`, {
         method: 'GET'
     });
 };
@@ -239,20 +239,20 @@ export const getSessions = async (userId, guestId) => {
     if (userId) params.append('userId', userId);
     if (guestId) params.append('guestId', guestId);
     
-    return await apiCall(`/sessions?${params.toString()}`, {
+    return await apiCall(`/cooking-sessions?${params.toString()}`, {
         method: 'GET'
     });
 };
 
 export const updateCookingSession = async (sessionId, data) => {
-    return await apiCall(`/sessions/${sessionId}`, {
+    return await apiCall(`/cooking-sessions/${sessionId}`, {
         method: 'PUT',
         body: JSON.stringify(data)
     });
 };
 
 export const markStepComplete = async (sessionId, stepNumber) => {
-    return await apiCall(`/sessions/${sessionId}/steps/${stepNumber}`, {
+    return await apiCall(`/cooking-sessions/${sessionId}/steps/${stepNumber}`, {
         method: 'PUT'
     });
 };
