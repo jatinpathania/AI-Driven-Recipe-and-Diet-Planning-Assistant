@@ -18,8 +18,8 @@ export async function POST(request) {
 
         const steps = recipe.instructions.map((instruction, index) => ({
             stepNumber: index + 1,
-            description: instruction,
-            duration: 0,
+            description: typeof instruction === 'string' ? instruction : instruction.step || instruction.instruction || instruction.text || 'Unknown step',
+            duration: (typeof instruction !== 'string' && instruction.timeInMinutes) ? instruction.timeInMinutes * 60 : 0,
             completed: false
         }));
 
