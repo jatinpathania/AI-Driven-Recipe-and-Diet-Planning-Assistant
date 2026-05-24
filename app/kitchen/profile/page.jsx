@@ -1,15 +1,16 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { User, BookOpen, ChefHat, Flame, Zap, LogOut, Moon, Sun, Loader2, ArrowRight } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { User, BookOpen, ChefHat, Flame, Zap, LogOut, Loader2, ArrowRight, Settings, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import Image from 'next/image'
 import { useKitchenTheme } from '@/context/KitchenThemeContext'
 import { useGuestUser } from '@/context/GuestUserContext'
-import { getCurrentUser, getUserProfile, getUserData, isAuthenticated, clearUserData } from '@/utils/api'
+import { getCurrentUser, getUserProfile, getUserData, isAuthenticated, clearUserData, updateUserProfile } from '@/utils/api'
 import Link from 'next/link'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import ThemeSwitch from '@/components/ui/ThemeSwitch'
 
 const ProfilePage = () => {
@@ -18,9 +19,79 @@ const ProfilePage = () => {
     const { theme, toggleTheme, mounted } = useKitchenTheme()
     const { userId, guestId, isGuest, login, logout } = useGuestUser()
     const [userData, setUserData] = useState(null)
-    const [loading, setLoading] = useState(true)
     const [savedRecipes, setSavedRecipes] = useState([])
     const [todayCalories, setTodayCalories] = useState(0)
+    const [isMounted, setIsMounted] = useState(false)
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+
+    const [showSettings, setShowSettings] = useState(false)
+    const [usernameInput, setUsernameInput] = useState('')
+    const [fullNameInput, setFullNameInput] = useState('')
+    const [bioInput, setBioInput] = useState('')
+    const [isSavingSettings, setIsSavingSettings] = useState(false)
+    const [errorMsg, setErrorMsg] = useState('')
+    const [toast, setToast] = useState(null)
+
+    const triggerToast = (message) => {
+        setToast(message)
+        setTimeout(() => setToast(null), 3000)
+    }
+
+    const handleSaveSettings = async () => {
+        if (!usernameInput.trim()) {
+            setErrorMsg("Username cannot be empty")
+            return
+        }
+
+        setIsSavingSettings(true)
+        setErrorMsg("")
+
+        try {
+            if (!isGuest) {
+                const response = await updateUserProfile({ 
+                    username: usernameInput.trim(),
+                    fullName: fullNameInput.trim(),
+                    bio: bioInput.trim()
+                })
+                if (response?.success) {
+                    if (userData) {
+                        setUserData(prev => ({ 
+                            ...prev, 
+                            username: response.data?.username || usernameInput.trim(),
+                            fullName: response.data?.fullName || fullNameInput.trim(),
+                            bio: response.data?.bio || bioInput.trim()
+                        }))
+                    }
+                    localStorage.setItem('username', usernameInput.trim())
+                    localStorage.setItem('flavourai_username', usernameInput.trim())
+                    triggerToast("Profile updated successfully!")
+                    setTimeout(() => {
+                        window.location.reload()
+                    }, 1000)
+                } else {
+                    setErrorMsg(response?.message || "Failed to update username")
+                }
+            } else {
+                localStorage.setItem('flavourai_username', usernameInput.trim())
+                localStorage.setItem('username', usernameInput.trim())
+                localStorage.setItem('flavourai_fullname', fullNameInput.trim())
+                localStorage.setItem('flavourai_bio', bioInput.trim())
+                triggerToast("Profile updated successfully!")
+                setTimeout(() => {
+                    window.location.reload()
+                }, 1000)
+            }
+        } catch (error) {
+            console.error("Save settings error:", error)
+            setErrorMsg(error.message || "Failed to update settings")
+        } finally {
+            setIsSavingSettings(false)
+        }
+    }
+
+    useEffect(() => {
+        setIsMounted(true)
+    }, [])
 
     useEffect(() => {
         const loadData = async () => {
@@ -57,8 +128,6 @@ const ProfilePage = () => {
                 const todayFoods = calories[today] || []
                 setTodayCalories(todayFoods.reduce((sum, f) => sum + (f.calories || 0), 0))
             } catch {}
-
-            setLoading(false)
         }
         loadData()
     }, [session, login])
@@ -67,17 +136,27 @@ const ProfilePage = () => {
     const emailAuthData = getUserData()
     const displayName = isGuest
         ? 'Guest Chef'
-        : (session?.user?.username || emailAuthData?.username || session?.user?.name || userData?.name || userData?.username || 'Chef')
+        : (userData?.username || session?.user?.username || emailAuthData?.username || userData?.name || session?.user?.name || 'Chef')
     const displaySubtitle = isGuest ? 'guest account' : 'User'
     const displayEmail = isGuest
         ? ''
         : (session?.user?.email || emailAuthData?.email || userData?.email || '')
+
+    const guestFullName = typeof window !== 'undefined' ? (localStorage.getItem('flavourai_fullname') || '') : ''
+    const guestBio = typeof window !== 'undefined' ? (localStorage.getItem('flavourai_bio') || '') : ''
+    const userFullName = isGuest ? guestFullName : (userData?.fullName || session?.user?.name || '')
+    const userBio = isGuest ? guestBio : (userData?.bio || '')
     // Database is source of truth for profile image
     // It gets filled when: 1) Email signup (empty), 2) Google fills it if empty, 3) Custom upload
     // Once image exists, it's locked and won't be overwritten
     const profileImage = userData?.profileImage || session?.user?.image
 
-    const handleLogout = async () => {
+    const handleLogout = () => {
+        setShowLogoutConfirm(true)
+    }
+
+    const confirmLogout = async () => {
+        setShowLogoutConfirm(false)
         clearUserData()  
         logout()      
         if (session) {
@@ -92,19 +171,24 @@ const ProfilePage = () => {
         { label: 'Calories Today', value: todayCalories, icon: Flame, color: 'red' },
         { label: 'Streak', value: '0 days', icon: Zap, color: 'yellow' },
     ]
-
-    if (loading) {
+    if (!isMounted) {
         return (
-            <div className="flex flex-col h-screen relative overflow-hidden w-full" style={{ backgroundColor: '#070B09', color: '#F3F4F6' }}>
-                <div className="relative z-10 flex-1 flex items-center justify-center">
-                    <Loader2 className="w-6 h-6 animate-spin text-[#10B981]" />
-                </div>
-            </div>
+            <div className="flex flex-col h-screen relative overflow-hidden w-full bg-[var(--bg-base)] text-[var(--text-main)]" />
         )
     }
 
     return (
-        <div className="flex flex-col h-screen relative overflow-hidden w-full" style={{ backgroundColor: '#070B09', color: '#F3F4F6' }}>
+        <div className="flex flex-col h-screen relative overflow-hidden w-full bg-[var(--bg-base)] text-[var(--text-main)]">
+            {/* Toast */}
+            <AnimatePresence>
+                {toast && (
+                    <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
+                        className="fixed top-6 left-1/2 -translate-x-1/2 bg-[#10B981] text-black font-bold text-xs px-4 py-2.5 rounded-full shadow-lg z-[100]">
+                        {toast}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             <div className="relative z-10 flex flex-col h-full">
                 <div className="px-6 md:px-8 py-4 flex items-center justify-between flex-shrink-0 border-b border-[#1A271E]">
                     <div className="flex items-center gap-3">
@@ -113,12 +197,25 @@ const ProfilePage = () => {
                             <p className="text-[11px] text-[#829A8B]">Your cooking journey</p>
                         </div>
                     </div>
-                    {mounted && (
-                        <button onClick={toggleTheme}
-                            className="w-9 h-9 rounded-xl bg-white/70 dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06] flex items-center justify-center hover:border-emerald-400/30 transition-all">
-                            {theme === 'dark' ? <Sun className="w-4 h-4 text-yellow-400" /> : <Moon className="w-4 h-4 text-gray-500" />}
+                    <div className="flex items-center gap-3">
+                        <button onClick={() => {
+                            const currentUsername = userData?.username || session?.user?.username || emailAuthData?.username || '';
+                            const currentFullName = isGuest ? guestFullName : (userData?.fullName || session?.user?.name || '');
+                            const currentBio = isGuest ? guestBio : (userData?.bio || '');
+                            setUsernameInput(currentUsername || localStorage.getItem('flavourai_username') || '');
+                            setFullNameInput(currentFullName || '');
+                            setBioInput(currentBio || '');
+                            setErrorMsg('');
+                            setShowSettings(true);
+                        }}
+                            className="w-9 h-9 rounded-xl bg-white/70 dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06] flex items-center justify-center hover:border-emerald-400/30 transition-all text-[#829A8B] hover:text-white cursor-pointer"
+                            title="Settings">
+                            <Settings className="w-4 h-4" />
                         </button>
-                    )}
+                        {mounted && (
+                            <ThemeSwitch theme={theme} toggleTheme={toggleTheme} />
+                        )}
+                    </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto hide-scrollbar">
@@ -137,16 +234,18 @@ const ProfilePage = () => {
                                     </div>
                                 </div>
                                 <div className="flex-1">
-                                    <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">{displayName}</h2>
-                                    {displayEmail && <p className="text-sm text-gray-400 dark:text-gray-600">{displayEmail}</p>}
-                                    <div className="flex items-center gap-2 mt-1.5">
-                                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${isLoggedIn && !isGuest ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-black/[0.04] dark:bg-white/[0.04] text-gray-500 dark:text-gray-400'}`}>
-                                            {isLoggedIn && !isGuest ? 'Pro Member' : 'Home Cook'}
+                                    <h2 className="text-xl font-bold text-[var(--text-main)]">{displayName}</h2>
+                                    {userFullName && <p className="text-xs text-[var(--text-muted)] mt-0.5 font-medium">{userFullName}</p>}
+                                    {displayEmail && <p className="text-[11px] text-[#829A8B]">{displayEmail}</p>}
+                                    {userBio && <p className="text-xs text-gray-300 italic mt-2 border-l border-emerald-500/30 pl-2">{userBio}</p>}
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${isLoggedIn && !isGuest ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-black/[0.04] dark:bg-white/[0.04] text-[var(--text-muted)]'}`}>
+                                            {displaySubtitle}
                                         </span>
                                     </div>
                                 </div>
                                 <button onClick={handleLogout}
-                                    className="p-2.5 rounded-xl bg-[#1A271E] hover:bg-red-500/10 transition-colors group">
+                                    className="p-2.5 rounded-xl bg-[#1A271E] hover:bg-red-500/10 transition-colors group cursor-pointer">
                                     <LogOut className="w-4 h-4 text-[#829A8B] group-hover:text-red-400" />
                                 </button>
                             </div>
@@ -211,6 +310,56 @@ const ProfilePage = () => {
                     </div>
                 </div>
             </div>
+            <ConfirmDialog
+                isOpen={showLogoutConfirm}
+                title="Logout?"
+                message="Are you sure you want to logout? You'll be taken back to the home page."
+                onConfirm={confirmLogout}
+                onCancel={() => setShowLogoutConfirm(false)}
+                confirmText="Yes, Logout"
+                cancelText="Cancel"
+                isDangerous={true}
+            />
+
+            {/* Settings Modal */}
+            <AnimatePresence>
+                {showSettings && (
+                    <div onClick={() => setShowSettings(false)} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+                            onClick={e => e.stopPropagation()} className="bg-[#0B120E] border border-[#24362A] max-w-[420px] w-full rounded-xl p-6 shadow-2xl space-y-5">
+                            <div className="flex justify-between items-center border-b border-[#1A271E] pb-3">
+                                <h3 className="font-bold flex items-center gap-2 text-white"><Settings size={16} className="text-[#10B981]" /> Settings</h3>
+                                <button onClick={() => setShowSettings(false)} className="text-[#829A8B] hover:text-white cursor-pointer"><X size={16} /></button>
+                            </div>
+                            <div className="space-y-4 text-xs">
+                                <div>
+                                    <label className="text-[#829A8B] font-semibold uppercase tracking-wider text-[10px] block mb-1.5">Chef Username</label>
+                                    <input type="text" value={usernameInput} onChange={e => setUsernameInput(e.target.value)}
+                                        className="w-full bg-[#111A14] border border-[#1A271E] rounded-lg p-2.5 text-gray-200 outline-none focus:border-[#10B981]" />
+                                </div>
+                                <div>
+                                    <label className="text-[#829A8B] font-semibold uppercase tracking-wider text-[10px] block mb-1.5">Full Name</label>
+                                    <input type="text" value={fullNameInput} onChange={e => setFullNameInput(e.target.value)}
+                                        className="w-full bg-[#111A14] border border-[#1A271E] rounded-lg p-2.5 text-gray-200 outline-none focus:border-[#10B981]" placeholder="e.g. John Doe" />
+                                </div>
+                                <div>
+                                    <label className="text-[#829A8B] font-semibold uppercase tracking-wider text-[10px] block mb-1.5">Cooking Bio / Dietary Preference</label>
+                                    <textarea value={bioInput} onChange={e => setBioInput(e.target.value)}
+                                        rows={3}
+                                        className="w-full bg-[#111A14] border border-[#1A271E] rounded-lg p-2.5 text-gray-200 outline-none focus:border-[#10B981] resize-none" placeholder="e.g. Vegetarian, keto diet, love spicy foods!" />
+                                </div>
+                                {errorMsg && (
+                                    <p className="text-red-400 text-[11px] font-medium">{errorMsg}</p>
+                                )}
+                            </div>
+                            <button onClick={handleSaveSettings} disabled={isSavingSettings} className="w-full bg-[#10B981] text-black font-bold text-xs py-2.5 rounded-lg hover:bg-[#34D399] transition-colors disabled:opacity-50 flex items-center justify-center gap-1 cursor-pointer">
+                                {isSavingSettings ? <Loader2 size={12} className="animate-spin" /> : null}
+                                {isSavingSettings ? 'Applying...' : 'Apply'}
+                            </button>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     )
 }
