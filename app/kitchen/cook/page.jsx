@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Clock, ArrowLeft, ArrowRight, Check, Play, Pause, RotateCcw, Utensils, Loader2 } from 'lucide-react'
+import { Clock, ArrowLeft, ArrowRight, Check, Play, Pause, RotateCcw, Utensils, Loader2, ChefHat } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -114,7 +114,18 @@ const CookPage = () => {
 
     if (!recipe) {
         return (
-            <div className="flex flex-col h-screen relative overflow-hidden w-full" style={{ backgroundColor: '#070B09', color: '#F3F4F6' }}>
+            <div className="flex flex-col h-screen relative overflow-hidden w-full bg-[var(--bg-base)] text-[var(--text-main)]">
+                <div className="px-6 md:px-8 py-4 flex items-center justify-between flex-shrink-0 border-b border-[#1A271E] min-h-[72px]">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-white shadow-lg shadow-rose-500/10 shrink-0">
+                            <ChefHat className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h1 className="text-lg font-bold text-[#F3F4F6]">Cook</h1>
+                            <p className="text-[11px] text-[#829A8B]">Follow recipe step-by-step instructions</p>
+                        </div>
+                    </div>
+                </div>
                 <div className="relative z-10 flex-1 flex items-center justify-center">
                     <div className="text-center">
                         <div className="w-16 h-16 rounded-2xl bg-[#111A14] border border-[#1A271E] flex items-center justify-center mx-auto mb-4">
@@ -133,7 +144,7 @@ const CookPage = () => {
 
     if (cookingFinished) {
         return (
-            <div className="flex flex-col h-screen relative overflow-hidden w-full" style={{ backgroundColor: '#070B09', color: '#F3F4F6' }}>
+            <div className="flex flex-col h-screen relative overflow-hidden w-full bg-[var(--bg-base)] text-[var(--text-main)]">
                 <div className="absolute top-[20%] left-[30%] w-[300px] h-[300px] bg-emerald-500/[0.04] rounded-full blur-[100px] pointer-events-none" />
                 <div className="relative z-10 flex-1 flex items-center justify-center">
                     <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
@@ -152,10 +163,13 @@ const CookPage = () => {
     }
 
     return (
-        <div className="flex flex-col h-screen relative overflow-hidden w-full" style={{ backgroundColor: '#070B09', color: '#F3F4F6' }}>
+        <div className="flex flex-col h-screen relative overflow-hidden w-full bg-[var(--bg-base)] text-[var(--text-main)]">
             <div className="relative z-10 flex flex-col h-full">
-                <div className="px-6 md:px-8 py-4 flex items-center justify-between flex-shrink-0 border-b border-[#1A271E]">
-                    <div className="flex items-center gap-3">
+                <div className="px-6 md:px-8 py-4 flex items-center justify-between flex-shrink-0 border-b border-[#1A271E] min-h-[72px]">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-white shadow-lg shadow-rose-500/10 shrink-0">
+                            <ChefHat className="w-6 h-6" />
+                        </div>
                         <div>
                             <h1 className="text-lg font-bold text-[#F3F4F6] truncate max-w-[200px]">{recipe.name || recipe.title || 'Cooking'}</h1>
                             <p className="text-[11px] text-[#829A8B]">{cookingStarted ? `Step ${currentStep + 1} of ${recipe.steps.length} · ${formatTime(elapsedTime)}` : `${recipe.steps.length} steps`}</p>
