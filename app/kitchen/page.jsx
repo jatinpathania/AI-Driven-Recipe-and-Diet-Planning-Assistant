@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import {
     Leaf, MessageSquare, BookOpen, Calendar, ChefHat, Timer, Flame, Play,
-    Settings, Sparkles, Clock, PenTool, Zap, Camera, Mic, ArrowUp,
+    Sparkles, Clock, PenTool, Zap, Camera, Mic, ArrowUp,
     TrendingUp, UtensilsCrossed, ShoppingCart, ArrowRight, X, ChevronRight,
     Check, RefreshCw, LogOut, CalendarPlus,PanelRightOpen, PanelRightClose, Bookmark, Loader2
 } from 'lucide-react'
@@ -99,7 +99,6 @@ const KitchenPage = () => {
     // ── MODALS & DRAWERS ──
     const [selectedRecipe, setSelectedRecipe] = useState(null);
     const [showGroceries, setShowGroceries] = useState(false)
-    const [showSettings, setShowSettings] = useState(false)
     const [scanModal, setScanModal] = useState(false)
     const [isScanning, setIsScanning] = useState(false)
     const [micActive, setMicActive] = useState(false)
@@ -514,13 +513,7 @@ const KitchenPage = () => {
         <>
             <style dangerouslySetInnerHTML={{
                 __html: `
-                :root {
-                    --bg-base: #070B09; --bg-panel: #0B120E; --bg-card: #111A14;
-                    --bg-hover: #1A271E; --text-main: #F3F4F6; --text-muted: #829A8B;
-                    --brand: #10B981; --brand-hover: #34D399;
-                    --brand-light: rgba(16, 185, 129, 0.1);
-                    --border: #1A271E; --border-light: #24362A;
-                }
+                /* Use global theme variables from globals.css (:root / .dark) */
                 .hide-scrollbar::-webkit-scrollbar { display: none; }
                 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
                 .section-label { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
@@ -537,19 +530,21 @@ const KitchenPage = () => {
             {/* ═══════════════════════════════════════
                 MAIN CONTENT - CHAT
                 ═══════════════════════════════════════ */}
-            <main className="flex-1 flex flex-col relative h-full min-w-0" style={{ backgroundColor: '#070B09' }}>
+            <main className="flex-1 flex flex-col relative h-full min-w-0 bg-[var(--bg-base)]">
 
                 {/* Top Bar */}
                 <header className="px-6 md:px-10 py-5 flex items-center justify-between shrink-0 border-b border-[#1A271E] min-h-[72px]">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
                         <button onClick={() => setMobileLeftOpen(true)} className="md:hidden p-2 rounded-lg bg-[#111A14] border border-[#24362A] text-[#829A8B] hover:text-white transition-all mr-1"><UtensilsCrossed size={16} /></button>
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/10 shrink-0">
+                            <MessageSquare className="w-6 h-6" />
+                        </div>
                         <div>
                             <h1 className="text-sm md:text-base font-bold text-[#F3F4F6]">Kitchen Assistant</h1>
                             <p className="text-[10px] md:text-[11px] text-[#829A8B]">Powered by Qwen 2.5 AI</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <button onClick={() => setShowSettings(true)} className="p-2 rounded-lg hover:bg-[#1A271E] text-[#829A8B] hover:text-white transition-all"><Settings size={20} /></button>
                         <button onClick={() => setMobileRightOpen(true)} className="xl:hidden p-2 rounded-lg bg-[#111A14] border border-[#24362A] text-[#829A8B] hover:text-white transition-all"><TrendingUp size={16} /></button>
                         <button
                             onClick={() => setShowOverview(!showOverview)}
@@ -636,7 +631,7 @@ const KitchenPage = () => {
                 </div>
 
                 {/* Input Area */}
-                <div className="w-full px-6 md:px-10 pb-6 shrink-0" style={{ background: 'linear-gradient(to top, #070B09 80%, transparent)' }}>
+                <div className="w-full px-6 md:px-10 pb-6 shrink-0" style={{ background: 'linear-gradient(to top, var(--bg-base) 80%, transparent)' }}>
                     <div className="flex gap-2 mb-4 overflow-x-auto hide-scrollbar">
                         {['Healthy Salad', '20 min timer', 'High protein meal', 'Vegan dinner'].map((pill, i) => (
                             <div key={i} onClick={() => !isTyping && selectPill(pill)} className={`bg-[#111A14] border border-[#1A271E] text-[#829A8B] px-4 py-2 rounded-full text-xs whitespace-nowrap hover:border-[#10B981] hover:text-white transition-colors ${isTyping ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}>
@@ -894,32 +889,7 @@ const KitchenPage = () => {
                 )}
             </AnimatePresence>
 
-            {/* Settings Modal */}
-            <AnimatePresence>
-                {showSettings && (
-                    <div onClick={() => setShowSettings(false)} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-                            onClick={e => e.stopPropagation()} className="bg-[#0B120E] border border-[#24362A] max-w-[420px] w-full rounded-xl p-6 shadow-2xl space-y-5">
-                            <div className="flex-between border-b border-[#1A271E] pb-3">
-                                <h3 className="font-bold flex items-center gap-2"><Settings size={16} className="text-[#10B981]" /> Settings</h3>
-                                <button onClick={() => setShowSettings(false)} className="text-[#829A8B] hover:text-white"><X size={16} /></button>
-                            </div>
-                            <div className="space-y-4 text-xs">
-                                <div>
-                                    <label className="text-[#829A8B] font-semibold uppercase tracking-wider text-[10px] block mb-1.5">Chef Username</label>
-                                    <input type="text" value={username} onChange={e => { setUsername(e.target.value); localStorage.setItem('flavourai_username', e.target.value) }}
-                                        className="w-full bg-[#111A14] border border-[#1A271E] rounded-lg p-2.5 text-gray-200 outline-none focus:border-[#10B981]" />
-                                </div>
-                                <div className="bg-[#111A14] p-3 rounded-lg border border-[#1A271E] flex items-center justify-between">
-                                    <div><div className="font-semibold text-gray-200">Deep Forest & Emerald</div><div className="text-[10px] text-[#829A8B] mt-0.5">Premium dark theme</div></div>
-                                    <span className="w-2.5 h-2.5 bg-[#10B981] rounded-full shadow shadow-[#10B981]" />
-                                </div>
-                            </div>
-                            <button onClick={() => { setShowSettings(false); triggerToast("Settings saved!") }} className="w-full bg-[#10B981] text-black font-bold text-xs py-2.5 rounded-lg hover:bg-[#34D399] transition-colors">Apply</button>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
+
 
             {/* Camera Scan Modal */}
             <AnimatePresence>
