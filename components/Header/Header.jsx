@@ -51,7 +51,6 @@ export default function Header({ overlay = false }) {
             }
             
             setUsername(user?.username || "User")
-            // schedule or clear auto-logout based on current auth state
             if (typeof window !== 'undefined') {
                 if (isLoggedIn) {
                     scheduleAutoLogout()
