@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Clock, Flame, Trash2, X, Loader2, Sparkles, Play } from 'lucide-react'
+import { Search, Clock, Flame, Trash2, X, Loader2, Sparkles, Play, BookOpen } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useGuestUser } from '@/context/GuestUserContext'
 import { generateRecipe as generateRecipeFromIngredients } from '@/utils/api'
@@ -99,11 +99,14 @@ const RecipesPage = () => {
     })
 
     return (
-        <div className="flex flex-col h-screen relative overflow-hidden w-full" style={{ backgroundColor: '#070B09', color: '#F3F4F6' }}>
+        <div className="flex flex-col h-screen relative overflow-hidden w-full bg-[var(--bg-base)] text-[var(--text-main)]">
             <div className="relative z-10 flex flex-col h-full">
                 {/* Unified Header */}
                 <div className="px-6 md:px-10 py-5 flex items-center justify-between flex-shrink-0 border-b border-[#1A271E] min-h-[72px]">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/10 shrink-0">
+                            <BookOpen className="w-6 h-6" />
+                        </div>
                         <div>
                             <h1 className="text-lg font-bold text-[#F3F4F6]">Recipes</h1>
                             <p className="text-[11px] text-[#829A8B]">{recipes.length} in collection</p>
