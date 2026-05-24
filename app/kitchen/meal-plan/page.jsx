@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, X, Check, ChevronLeft, ChevronRight, Sparkles, Loader2, Trash2 } from 'lucide-react'
+import { Plus, X, Check, ChevronLeft, ChevronRight, Sparkles, Loader2, Trash2, Calendar } from 'lucide-react'
 import { useGuestUser } from '@/context/GuestUserContext'
 import { sendChatMessage } from '@/utils/api'
 
@@ -140,14 +140,17 @@ const MealPlanPage = () => {
     }
 
     return (
-        <div className="flex flex-col h-screen relative overflow-hidden w-full" style={{ backgroundColor: '#070B09', color: '#F3F4F6' }}>
+        <div className="flex flex-col h-screen relative overflow-hidden w-full bg-[var(--bg-base)] text-[var(--text-main)]">
             <div className="relative z-10 flex flex-col h-full">
                 {/* Unified Header */}
                 <div className="px-6 md:px-10 py-5 flex items-center justify-between flex-shrink-0 border-b border-[#1A271E] min-h-[72px]">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/10 shrink-0">
+                            <Calendar className="w-6 h-6" />
+                        </div>
                         <div>
-                            <h1 className="text-lg font-bold text-[#F3F4F6]">Meal Planner</h1>
-                            <p className="text-[11px] text-[#829A8B]">Schedule your nutrition & macro targets</p>
+                            <h1 className="text-lg font-bold text-[#F3F4F6]">Meal Plan</h1>
+                            <p className="text-[11px] text-[#829A8B]">Plan your week ahead</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2 bg-[#111A14] border border-[#1A271E] px-2 py-1 rounded-xl">
@@ -267,7 +270,7 @@ const MealPlanPage = () => {
                                     <h3 className="text-xs font-bold text-[#829A8B] uppercase tracking-wider border-b border-[#1A271E]/50 pb-2">Weekly Summary</h3>
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <div className="text-3xl font-extrabold tracking-tight text-white">{completedPlannedThisWeek} <span className="text-xs text-[#829A8B] font-semibold">/ {totalPlannedThisWeek}</span></div>
+                                            <div className="text-3xl font-extrabold tracking-tight text-[var(--text-main)]">{completedPlannedThisWeek} <span className="text-xs text-[#829A8B] font-semibold">/ {totalPlannedThisWeek}</span></div>
                                             <div className="text-[11px] text-[#829A8B] uppercase font-bold tracking-wider mt-0.5">meals completed</div>
                                         </div>
                                         <div className="w-12 h-12 rounded-xl bg-[rgba(16,185,129,0.06)] border border-[#1A271E] flex items-center justify-center text-xl shadow-inner">
@@ -317,7 +320,7 @@ const MealPlanPage = () => {
                                 {/* Smart Chef Preparation Tip Widget */}
                                 <div className="bg-[rgba(16,185,129,0.03)] border border-[rgba(16,185,129,0.15)] rounded-2xl p-5 space-y-3 shadow-lg shadow-emerald-950/[0.05]">
                                     <h3 className="text-xs font-bold text-[#10B981] flex items-center gap-2 uppercase tracking-widest"><Sparkles className="w-4 h-4" /> Chef Prep Guide</h3>
-                                    <p className="text-[13px] text-gray-200 leading-relaxed font-medium">
+                                    <p className="text-[13px] text-[var(--text-main)] leading-relaxed font-medium">
                                         {getPrepTipForDay(selectedDay)}
                                     </p>
                                 </div>
