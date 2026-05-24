@@ -73,6 +73,18 @@ body {
   overflow-x: hidden;
 }
 
+/* Map common hardcoded Tailwind arbitrary color classes to CSS variables
+   so components using bg-[#111A14] etc. follow the theme variables. */
+[class*="bg-[#070B09]"] { background-color: var(--bg-base) !important; }
+[class*="bg-[#0B120E]"] { background-color: var(--bg-panel) !important; }
+[class*="bg-[#111A14]"] { background-color: var(--bg-card) !important; }
+[class*="bg-[#1A271E]"] { background-color: var(--bg-hover) !important; }
+[class*="bg-[#070B09]"] { background: var(--bg-base) !important; }
+[class*="text-[#F3F4F6]"] { color: var(--text-main) !important; }
+[class*="text-[#829A8B]"] { color: var(--text-muted) !important; }
+[class*="border-[#1A271E]"] { border-color: var(--border) !important; }
+[class*="border-[#24362A]"] { border-color: var(--border-light) !important; }
+
 
 
 /* Hide scrollbar utility */
