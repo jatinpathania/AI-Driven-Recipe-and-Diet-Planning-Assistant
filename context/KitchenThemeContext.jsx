@@ -1,31 +1,9 @@
 "use client"
 
-import React, { createContext, useContext, useSyncExternalStore } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 const KitchenThemeContext = createContext();
-
-let themeValue = 'light';
-
-const getSnapshot = () => {
-    return themeValue;
-};
-
-const getServerSnapshot = () => {
-    return 'light';
-};
-
-const subscribe = (callback) => {
-    // Initialize theme from localStorage when first subscribed (on mount)
-    themeValue = localStorage.getItem('kitchen-theme') || 'light';
-    
-    const handleStorageChange = () => {
-        themeValue = localStorage.getItem('kitchen-theme') || 'light';
-        callback();
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-};
 
 export const useKitchenTheme = () => {
     const context = useContext(KitchenThemeContext);
@@ -36,24 +14,64 @@ export const useKitchenTheme = () => {
 };
 
 export const KitchenThemeProvider = ({ children }) => {
-    const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+    const [theme, setThemeState] = useState('dark');
+    const pathname = usePathname();
+
+    useEffect(() => {
+        try {
+            if (typeof window !== 'undefined') {
+                const defaultApplied = localStorage.getItem('kitchen-theme-default-dark-v1');
+                if (!defaultApplied) {
+                    localStorage.setItem('kitchen-theme', 'dark');
+                    localStorage.setItem('kitchen-theme-default-dark-v1', '1');
+                    setThemeState('dark');
+                    return;
+                }
+
+                const savedTheme = localStorage.getItem('kitchen-theme');
+                if (savedTheme === 'light') {
+                    setThemeState('light');
+                } else {
+                    setThemeState('dark');
+                }
+            }
+        } catch (e) {}
+    }, []);
+    useEffect(() => {
+        try {
+            const isHomePage = pathname === '/';
+            if (theme === 'dark' && !isHomePage) {
+                document.documentElement.classList.add('dark');
+                document.documentElement.style.colorScheme = 'dark';
+            } else {
+                document.documentElement.classList.remove('dark');
+                document.documentElement.style.colorScheme = 'light';
+            }
+        } catch (e) {}
+
+        return () => {
+            try {
+                document.documentElement.classList.remove('dark');
+                document.documentElement.style.colorScheme = 'light';
+            } catch (e) {}
+        };
+    }, [theme, pathname]);
 
     const setTheme = (value) => {
-        themeValue = value;
-        localStorage.setItem('kitchen-theme', value);
-        window.dispatchEvent(new Event('storage'));
+        setThemeState(value);
+        try {
+            localStorage.setItem('kitchen-theme', value);
+            localStorage.setItem('kitchen-theme-selected', '1');
+        } catch (e) {}
     };
 
     const toggleTheme = () => {
-        const next = theme === 'dark' ? 'light' : 'dark';
-        setTheme(next);
+        setTheme(theme === 'dark' ? 'light' : 'dark');
     };
 
     return (
         <KitchenThemeContext.Provider value={{ theme, setTheme, toggleTheme, mounted: true }}>
-            <div className={theme === 'dark' ? 'dark' : ''}>
-                {children}
-            </div>
+            <div className={theme === 'dark' ? 'dark' : ''}>{children}</div>
         </KitchenThemeContext.Provider>
     );
 };
