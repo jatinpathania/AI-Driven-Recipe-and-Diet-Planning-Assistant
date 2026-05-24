@@ -5,7 +5,7 @@ import { MessageSquare, UtensilsCrossed, Calendar, Timer, Flame, Menu, X, ChefHa
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useGuestUser } from '@/context/GuestUserContext'
-import { getCurrentUser, scheduleAutoLogout } from '@/utils/api'
+import { getCurrentUser, scheduleAutoLogout, getUserData } from '@/utils/api'
 import { useSession, signOut } from 'next-auth/react'
 import SidebarContent from './SidebarContent'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
@@ -73,14 +73,15 @@ const Sidebar = () => {
     }, [isGuest, session, userData])
 
     const username = useMemo(() => {
-        return session?.user?.username || userData?.username || session?.user?.name || 'Chef'
+        const emailAuthData = getUserData()
+        return session?.user?.username || emailAuthData?.username || session?.user?.name || userData?.name || userData?.username || 'Chef'
     }, [session, userData])
 
     const displayName = isGuest ? 'Guest Chef' : username
     const displaySubtitle = isGuest ? 'guest account' : 'User'
 
     const profileImage = useMemo(() => {
-        return session?.user?.image || userData?.profileImage || null
+        return userData?.profileImage || session?.user?.image || null
     }, [session, userData])
 
     const todayCalories = useMemo(() => {
@@ -96,18 +97,15 @@ const Sidebar = () => {
     }, [])
 
     const handleLogoutClick = () => {
-        if (!isGuest) {
-            setShowLogoutConfirm(true)
-        } else {
-            logout()
-            router.push('/')
-        }
+        setShowLogoutConfirm(true)
     }
 
     const confirmLogout = async () => {
         setShowLogoutConfirm(false)
         logout()
-        await signOut({ redirect: false })
+        if (!isGuest) {
+            await signOut({ redirect: false })
+        }
         router.push('/')
     }
 
@@ -173,18 +171,16 @@ const Sidebar = () => {
                 </>
             )}
 
-            {!isGuest && (
-                <ConfirmDialog
-                    isOpen={showLogoutConfirm}
-                    title="Logout?"
-                    message="Are you sure you want to logout? You'll be taken back to the home page."
-                    onConfirm={confirmLogout}
-                    onCancel={() => setShowLogoutConfirm(false)}
-                    confirmText="Yes, Logout"
-                    cancelText="Cancel"
-                    isDangerous={true}
-                />
-            )}
+            <ConfirmDialog
+                isOpen={showLogoutConfirm}
+                title="Logout?"
+                message="Are you sure you want to logout? You'll be taken back to the home page."
+                onConfirm={confirmLogout}
+                onCancel={() => setShowLogoutConfirm(false)}
+                confirmText="Yes, Logout"
+                cancelText="Cancel"
+                isDangerous={true}
+            />
         </>
     )
 }
