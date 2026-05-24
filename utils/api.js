@@ -44,17 +44,15 @@ const apiCall = async (endpoint, options = {}) =>{
 
         const contentType = response.headers.get('content-type') || '';
         const isJson = contentType.includes('application/json');
+        const isAuthLoginOrSignup = endpoint.startsWith('/auth/login') || endpoint.startsWith('/auth/signup');
 
-        // If the token expired or is invalid, clear local auth data and redirect to login
-        if (response.status === 401) {
-            if (typeof window !== 'undefined' && !isGuestAuth()) {
-                triggerSessionExpired();
-            }
-            throw new Error('Unauthorized');
+        // If the token expired or is invalid on protected routes, clear local auth data and redirect to login
+        if (response.status === 401 && typeof window !== 'undefined' && !isGuestAuth() && !isAuthLoginOrSignup) {
+            triggerSessionExpired();
         }
 
         if (!response.ok) {
-            let errMsg = `Request failed (${response.status})`;
+            let errMsg = response.status === 401 ? 'Unauthorized' : `Request failed (${response.status})`;
             if (isJson) {
                 try {
                     const errData = await response.json();
@@ -76,7 +74,10 @@ const apiCall = async (endpoint, options = {}) =>{
 
         return { success: true };
     } catch (error) {
-        console.error(`API call error [${endpoint}]:`, error);
+        const status = error?.status;
+        if (status === undefined || status >= 500) {
+            console.error(`API call error [${endpoint}]:`, error);
+        }
         
         // Handle specific fetch errors (e.g. network partition)
         if (error instanceof TypeError && /fetch/i.test(error.message || '')) {
