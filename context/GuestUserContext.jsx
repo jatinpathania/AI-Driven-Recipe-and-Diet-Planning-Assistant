@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { useSession } from 'next-auth/react';
 
 const GuestUserContext = createContext();
 
@@ -14,20 +15,49 @@ export const useGuestUser = () => {
 };
 
 export const GuestUserProvider = ({ children }) => {
+    const { data: session, status } = useSession();
     const [guestId, setGuestId] = useState(null);
     const [userId, setUserId] = useState(null);
     const [isGuest, setIsGuest] = useState(true);
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        if (status === "loading") return;
+
         const storedUserId = localStorage.getItem('userId');
         const storedToken = localStorage.getItem('token');
+        const storedAuthType = localStorage.getItem('authType');
         
-        if (storedUserId && storedToken) {
-            setUserId(storedUserId);
+        const nextAuthAuthenticated = status === "authenticated";
+        const emailAuthenticated = !!(storedUserId && storedToken);
+
+        if (nextAuthAuthenticated || emailAuthenticated) {
+            const currentUserId = session?.user?.id || session?.user?.email || storedUserId;
+            setUserId(currentUserId);
             setIsGuest(false);
             setGuestId(null);
+            localStorage.setItem('authType', 'user');
+            if (currentUserId && !storedUserId) {
+                localStorage.setItem('userId', currentUserId);
+            }
         } else {
+            if (storedAuthType === 'user') {
+                // The user was logged in previously, so their session has expired!
+                localStorage.removeItem('userId');
+                localStorage.removeItem('token');
+                localStorage.removeItem('username');
+                localStorage.removeItem('userEmail');
+                localStorage.setItem('authType', 'guest');
+                
+                // Let's redirect to login if they are in the kitchen area
+                const isKitchen = typeof window !== 'undefined' && window.location.pathname.startsWith('/kitchen');
+                if (isKitchen) {
+                    window.location.href = '/login';
+                    return;
+                }
+            }
+
+            // Normal guest user
             let storedGuestId = localStorage.getItem('guestId');
             if (!storedGuestId) {
                 storedGuestId = uuidv4();
@@ -36,11 +66,11 @@ export const GuestUserProvider = ({ children }) => {
             setGuestId(storedGuestId);
             setUserId(null);
             setIsGuest(true);
+            localStorage.setItem('authType', 'guest');
         }
 
-        localStorage.setItem('authType', storedUserId && storedToken ? 'user' : 'guest');
         setMounted(true);
-    }, []);
+    }, [session, status]);
 
     const login = (newUserId) => {
         setUserId(newUserId);
