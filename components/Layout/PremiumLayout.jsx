@@ -2,23 +2,38 @@
 
 import React from 'react'
 import { PremiumLayoutProvider, usePremiumLayout } from '@/context/PremiumLayoutContext'
-import PremiumSidebar from '@/components/Sidebar/PremiumSidebar'
+import SidebarContent from '@/components/Sidebar/SidebarContent'
 import { GuestUserProvider } from '@/context/GuestUserContext'
 
 const PremiumLayoutContent = ({ children }) => {
     const { mobileLeftOpen, setMobileLeftOpen } = usePremiumLayout()
 
     return (
-        <div className="flex h-screen overflow-hidden relative select-none" style={{ backgroundColor: '#070B09', color: '#F3F4F6', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <div className="flex h-screen overflow-hidden relative select-none" style={{ backgroundColor: 'var(--white)', color: 'var(--text)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             <style dangerouslySetInnerHTML={{ __html: `
                 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
                 :root {
+                    --bg-base: #ffffff; --bg-panel: #f8faf9; --bg-card: #ffffff;
+                    --bg-hover: #ecf7f1; --text-main: #0f172a; --text-muted: #64748b;
+                    --brand: #10B981; --brand-hover: #34D399;
+                    --brand-light: rgba(16, 185, 129, 0.1);
+                    --border: #e2e8f0; --border-light: #cbd5e1;
+                }
+                .dark {
                     --bg-base: #070B09; --bg-panel: #0B120E; --bg-card: #111A14;
                     --bg-hover: #1A271E; --text-main: #F3F4F6; --text-muted: #829A8B;
                     --brand: #10B981; --brand-hover: #34D399;
                     --brand-light: rgba(16, 185, 129, 0.1);
                     --border: #1A271E; --border-light: #24362A;
                 }
+                
+                /* Map Tailwind's hardcoded text color classes to dynamic theme variables */
+                [class*="text-gray-50"] { color: var(--text-main) !important; }
+                [class*="text-gray-100"] { color: var(--text-main) !important; }
+                [class*="text-gray-200"] { color: var(--text-main) !important; }
+                [class*="text-gray-300"] { color: var(--text-muted) !important; }
+                [class*="text-gray-400"] { color: var(--text-muted) !important; }
+
                 .hide-scrollbar::-webkit-scrollbar { display: none; }
                 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
                 .section-label { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
@@ -33,13 +48,13 @@ const PremiumLayoutContent = ({ children }) => {
                     background-color: var(--bg-card);
                     border: 1px solid var(--border);
                     border-radius: 1rem;
-                    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+                    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06);
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 }
                 .premium-card-interactive:hover {
                     border-color: var(--brand);
-                    background-color: #152019;
-                    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 0 15px rgba(16, 185, 129, 0.08);
+                    background-color: var(--bg-hover);
+                    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 0 15px rgba(16, 185, 129, 0.08);
                     transform: translateY(-2px);
                 }
                 
@@ -65,14 +80,14 @@ const PremiumLayoutContent = ({ children }) => {
                 }
             ` }} />
             
-            <PremiumSidebar />
+            <SidebarContent variant="premium" />
             
             {/* Mobile backdrop */}
             {mobileLeftOpen && (
                 <div onClick={() => setMobileLeftOpen(false)} className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-30" />
             )}
 
-            <main className="flex-1 flex relative h-full min-w-0" style={{ backgroundColor: '#070B09' }}>
+            <main className="flex-1 flex relative h-full min-w-0" style={{ backgroundColor: 'var(--bg-base)' }}>
                 {children}
             </main>
         </div>
