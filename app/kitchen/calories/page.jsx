@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, X, Trash2, ChevronLeft, ChevronRight, Sparkles, Loader2, Target } from 'lucide-react'
+import { Plus, X, Trash2, ChevronLeft, ChevronRight, Sparkles, Loader2, Target, Flame } from 'lucide-react'
 import { useGuestUser } from '@/context/GuestUserContext'
 import { sendChatMessage } from '@/utils/api'
 
@@ -127,26 +127,27 @@ const CaloriesPage = () => {
     const dateLabel = isToday ? 'Today' : new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
 
     return (
-        <div className="flex flex-col h-screen relative overflow-hidden w-full" style={{ backgroundColor: '#070B09', color: '#F3F4F6' }}>
+        <div className="flex flex-col h-screen relative overflow-hidden w-full bg-[var(--bg-base)] text-[var(--text-main)]">
             <div className="relative z-10 flex flex-col h-full w-full">
                 {/* Unified Header */}
-                <div className="border-b border-[#1A271E] flex-shrink-0 min-h-[72px] flex items-center w-full">
-                    <div className="max-w-5xl mx-auto w-full px-6 md:px-10 py-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div>
-                                <h1 className="text-lg font-bold text-[#F3F4F6]">Calories</h1>
-                                <p className="text-[11px] text-[#829A8B]">Track your daily nutrition intake</p>
-                            </div>
+                <div className="px-6 md:px-10 py-5 flex items-center justify-between flex-shrink-0 border-b border-[#1A271E] min-h-[72px] w-full">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center text-white shadow-lg shadow-orange-500/10 shrink-0">
+                            <Flame className="w-6 h-6" />
                         </div>
-                        <div className="flex items-center gap-2 bg-[#111A14] border border-[#1A271E] px-2 py-1 rounded-xl">
-                            <button onClick={() => changeDate(-1)} className="p-1.5 hover:bg-[#1A271E] rounded-lg transition-colors">
-                                <ChevronLeft className="w-4 h-4 text-[#829A8B]" />
-                            </button>
-                            <span className="text-[10px] font-extrabold text-[#F3F4F6] min-w-[100px] text-center uppercase tracking-wider">{dateLabel}</span>
-                            <button onClick={() => changeDate(1)} className="p-1.5 hover:bg-[#1A271E] rounded-lg transition-colors">
-                                <ChevronRight className="w-4 h-4 text-[#829A8B]" />
-                            </button>
+                        <div>
+                            <h1 className="text-lg font-bold text-[#F3F4F6]">Calories</h1>
+                            <p className="text-[11px] text-[#829A8B]">Track your daily nutrition intake</p>
                         </div>
+                    </div>
+                    <div className="flex items-center gap-2 bg-[#111A14] border border-[#1A271E] px-2 py-1 rounded-xl">
+                        <button onClick={() => changeDate(-1)} className="p-1.5 hover:bg-[#1A271E] rounded-lg transition-colors">
+                            <ChevronLeft className="w-4 h-4 text-[#829A8B]" />
+                        </button>
+                        <span className="text-[10px] font-extrabold text-[#F3F4F6] min-w-[100px] text-center uppercase tracking-wider">{dateLabel}</span>
+                        <button onClick={() => changeDate(1)} className="p-1.5 hover:bg-[#1A271E] rounded-lg transition-colors">
+                            <ChevronRight className="w-4 h-4 text-[#829A8B]" />
+                        </button>
                     </div>
                 </div>
 
