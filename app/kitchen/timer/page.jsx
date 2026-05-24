@@ -82,11 +82,14 @@ const TimerPage = () => {
     }
 
     return (
-        <div className="flex flex-col h-screen relative overflow-hidden w-full" style={{ backgroundColor: '#070B09', color: '#F3F4F6' }}>
+        <div className="flex flex-col h-screen relative overflow-hidden w-full bg-[var(--bg-base)] text-[var(--text-main)]">
             <div className="relative z-10 flex flex-col h-full">
                 {/* Unified Header */}
                 <div className="px-6 md:px-10 py-5 flex items-center justify-between flex-shrink-0 border-b border-[#1A271E] min-h-[72px]">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-purple-500/10 shrink-0">
+                            <Timer className="w-6 h-6" />
+                        </div>
                         <div>
                             <h1 className="text-lg font-bold text-[#F3F4F6]">Kitchen Timers</h1>
                             <p className="text-[11px] text-[#829A8B]">{timers.length > 0 ? `${timers.length} running active` : 'No active timers'}</p>
