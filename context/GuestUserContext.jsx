@@ -24,52 +24,63 @@ export const GuestUserProvider = ({ children }) => {
     useEffect(() => {
         if (status === "loading") return;
 
-        const storedUserId = localStorage.getItem('userId');
-        const storedToken = localStorage.getItem('token');
-        const storedAuthType = localStorage.getItem('authType');
-        
-        const nextAuthAuthenticated = status === "authenticated";
-        const emailAuthenticated = !!(storedUserId && storedToken);
+        const syncAuthState = () => {
+            const storedUserId = localStorage.getItem('userId');
+            const storedToken = localStorage.getItem('token');
+            const storedAuthType = localStorage.getItem('authType');
 
-        if (nextAuthAuthenticated || emailAuthenticated) {
-            const currentUserId = session?.user?.id || session?.user?.email || storedUserId;
-            setUserId(currentUserId);
-            setIsGuest(false);
-            setGuestId(null);
-            localStorage.setItem('authType', 'user');
-            if (currentUserId && !storedUserId) {
-                localStorage.setItem('userId', currentUserId);
-            }
-        } else {
-            if (storedAuthType === 'user') {
-                // The user was logged in previously, so their session has expired!
-                localStorage.removeItem('userId');
-                localStorage.removeItem('token');
-                localStorage.removeItem('username');
-                localStorage.removeItem('userEmail');
-                localStorage.setItem('authType', 'guest');
-                
-                // Let's redirect to login if they are in the kitchen area
-                const isKitchen = typeof window !== 'undefined' && window.location.pathname.startsWith('/kitchen');
-                if (isKitchen) {
-                    window.location.href = '/login';
-                    return;
+            const nextAuthAuthenticated = status === "authenticated";
+            const emailAuthenticated = !!(storedUserId && storedToken);
+
+            if (nextAuthAuthenticated || emailAuthenticated) {
+                const currentUserId = session?.user?.id || session?.user?.email || storedUserId;
+                setUserId(currentUserId);
+                setIsGuest(false);
+                setGuestId(null);
+                localStorage.setItem('authType', 'user');
+                if (currentUserId && !storedUserId) {
+                    localStorage.setItem('userId', currentUserId);
                 }
+            } else {
+                if (storedAuthType === 'user') {
+                    // The user was logged in previously, so their session has expired!
+                    localStorage.removeItem('userId');
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    localStorage.removeItem('userEmail');
+                    localStorage.setItem('authType', 'guest');
+
+                    // Let's redirect to login if they are in the kitchen area
+                    const isKitchen = typeof window !== 'undefined' && window.location.pathname.startsWith('/kitchen');
+                    if (isKitchen) {
+                        window.location.href = '/login';
+                        return;
+                    }
+                }
+
+                // Normal guest user
+                let storedGuestId = localStorage.getItem('guestId');
+                if (!storedGuestId) {
+                    storedGuestId = uuidv4();
+                    localStorage.setItem('guestId', storedGuestId);
+                }
+                setGuestId(storedGuestId);
+                setUserId(null);
+                setIsGuest(true);
+                localStorage.setItem('authType', 'guest');
             }
 
-            // Normal guest user
-            let storedGuestId = localStorage.getItem('guestId');
-            if (!storedGuestId) {
-                storedGuestId = uuidv4();
-                localStorage.setItem('guestId', storedGuestId);
-            }
-            setGuestId(storedGuestId);
-            setUserId(null);
-            setIsGuest(true);
-            localStorage.setItem('authType', 'guest');
-        }
+            setMounted(true);
+        };
 
-        setMounted(true);
+        syncAuthState();
+
+        // Credentials-based login/logout doesn't touch NextAuth's session/status,
+        // so re-sync when utils/api.js reports a local auth change on this tab.
+        window.addEventListener('flavour:auth-changed', syncAuthState);
+        return () => {
+            window.removeEventListener('flavour:auth-changed', syncAuthState);
+        };
     }, [session, status]);
 
     const login = (newUserId) => {

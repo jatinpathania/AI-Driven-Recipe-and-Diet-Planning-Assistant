@@ -3,7 +3,6 @@
 import React from 'react'
 import { PremiumLayoutProvider, usePremiumLayout } from '@/context/PremiumLayoutContext'
 import SidebarContent from '@/components/Sidebar/SidebarContent'
-import { GuestUserProvider } from '@/context/GuestUserContext'
 
 const PremiumLayoutContent = ({ children }) => {
     const { mobileLeftOpen, setMobileLeftOpen } = usePremiumLayout()
@@ -96,13 +95,11 @@ const PremiumLayoutContent = ({ children }) => {
 
 const PremiumLayout = ({ children }) => {
     return (
-        <GuestUserProvider>
-            <PremiumLayoutProvider>
-                <PremiumLayoutContent>
-                    {children}
-                </PremiumLayoutContent>
-            </PremiumLayoutProvider>
-        </GuestUserProvider>
+        <PremiumLayoutProvider>
+            <PremiumLayoutContent>
+                {children}
+            </PremiumLayoutContent>
+        </PremiumLayoutProvider>
     )
 }
 

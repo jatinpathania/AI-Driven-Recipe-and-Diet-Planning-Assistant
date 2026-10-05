@@ -10,19 +10,63 @@ export const clearAuthStorage = () => {
         localStorage.removeItem('userId');
         localStorage.removeItem('username');
         localStorage.removeItem('userEmail');
+        window.dispatchEvent(new CustomEvent('flavour:auth-changed'));
     } catch (e) {
         // ignore storage errors
     }
 };
 
-const isGuestAuth = () => {
+const isUserAuth = () => {
     if (typeof window === 'undefined') return false;
-    return localStorage.getItem('authType') === 'guest';
+    return localStorage.getItem('authType') === 'user';
 };
 
 const triggerSessionExpired = () => {
     if (typeof window === 'undefined') return;
     window.dispatchEvent(new CustomEvent('flavour:session-expired'));
+};
+
+// Google sign-in lives in the NextAuth cookie, not in localStorage
+const hasActiveNextAuthSession = async () => {
+    try {
+        const res = await fetch('/api/auth/session', { cache: 'no-store' });
+        if (!res.ok) return false;
+        const data = await res.json();
+        return !!data?.user;
+    } catch {
+        return false;
+    }
+};
+
+let pendingExpiryCheck = null;
+
+// Called when the server rejects us or the local token runs out. Only shows the
+// "session expired" popup if the user really has no valid session left.
+const handleAuthFailure = (rejectedToken) => {
+    if (typeof window === 'undefined' || !isUserAuth()) return;
+    if (pendingExpiryCheck) return pendingExpiryCheck;
+
+    pendingExpiryCheck = (async () => {
+        if (await hasActiveNextAuthSession()) {
+            // Still signed in with Google; just drop the stale email token so it isn't reused
+            if (rejectedToken && localStorage.getItem('token') === rejectedToken) {
+                localStorage.removeItem('token');
+            }
+            return;
+        }
+        // A new login may have happened while we were checking
+        if (rejectedToken && localStorage.getItem('token') !== rejectedToken) return;
+        triggerSessionExpired();
+    })().finally(() => {
+        pendingExpiryCheck = null;
+    });
+
+    return pendingExpiryCheck;
+};
+
+const triggerAuthChanged = () => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent('flavour:auth-changed'));
 };
 
 const apiCall = async (endpoint, options = {}) =>{
@@ -47,8 +91,8 @@ const apiCall = async (endpoint, options = {}) =>{
         const isAuthLoginOrSignup = endpoint.startsWith('/auth/login') || endpoint.startsWith('/auth/signup');
 
         // If the token expired or is invalid on protected routes, clear local auth data and redirect to login
-        if (response.status === 401 && typeof window !== 'undefined' && !isGuestAuth() && !isAuthLoginOrSignup) {
-            triggerSessionExpired();
+        if (response.status === 401 && typeof window !== 'undefined' && !isAuthLoginOrSignup) {
+            handleAuthFailure(token);
         }
 
         if (!response.ok) {
@@ -190,6 +234,7 @@ export const saveUserData = (data) => {
         localStorage.setItem('username', data.username);
         localStorage.setItem('userEmail', data.email);
         localStorage.setItem('authType', 'user');
+        triggerAuthChanged();
     }
 };
 
@@ -212,6 +257,7 @@ export const clearUserData = () => {
         localStorage.removeItem('username');
         localStorage.removeItem('userEmail');
         localStorage.setItem('authType', 'guest');
+        triggerAuthChanged();
     }
 };
 
@@ -399,16 +445,16 @@ export const scheduleAutoLogout = (opts = { redirectTo: '/login' }) => {
         if (ms === null) return;
 
         if (ms <= 0) {
-            clearAuthStorage();
-            triggerSessionExpired();
+            handleAuthFailure(token);
             return;
         }
 
-        // set timer to fire a little after expiry
-        const timeout = Math.max(1000, ms + 500);
+        // set timer to fire a little after expiry; re-check on fire since the token may have
+        // been replaced, and cap it because setTimeout overflows past ~24.8 days
+        const timeout = Math.min(Math.max(1000, ms + 500), 2147483647);
         window.__flavour_logout_timer = setTimeout(() => {
-            clearAuthStorage();
-            triggerSessionExpired();
+            window.__flavour_logout_timer = null;
+            scheduleAutoLogout(opts);
         }, timeout);
     } catch (e) {
         // ignore

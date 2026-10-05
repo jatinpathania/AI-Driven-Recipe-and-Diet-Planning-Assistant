@@ -79,12 +79,14 @@ export default function Header({ overlay = false }) {
         window.addEventListener("scroll", handleScroll)
         window.addEventListener("storage", syncAuth)
         window.addEventListener("focus", syncAuth)
+        window.addEventListener("flavour:auth-changed", syncAuth)
         document.addEventListener("mousedown", handleClickOutside)
 
         return () => {
             window.removeEventListener("scroll", handleScroll)
             window.removeEventListener("storage", syncAuth)
             window.removeEventListener("focus", syncAuth)
+            window.removeEventListener("flavour:auth-changed", syncAuth)
             document.removeEventListener("mousedown", handleClickOutside)
         }
     }, [session])

@@ -8,8 +8,7 @@ import { NextResponse } from 'next/server';
 export async function GET(request, { params }) {
     try {
         await connectDB();
-        const authHeader = request.headers.get('Authorization');
-        const user = await verifyAuth(authHeader);
+        const user = await verifyAuth(request);
 
         if (!user) {
             return NextResponse.json(
@@ -43,8 +42,7 @@ export async function GET(request, { params }) {
 export async function DELETE(request, { params }) {
     try {
         await connectDB();
-        const authHeader = request.headers.get('Authorization');
-        const user = await verifyAuth(authHeader);
+        const user = await verifyAuth(request);
 
         if (!user) {
             return NextResponse.json(

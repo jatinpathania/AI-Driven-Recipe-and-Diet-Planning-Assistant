@@ -8,8 +8,7 @@ import { NextResponse } from 'next/server';
 export async function POST(request) {
     try{
         await connectDB();
-        const authHeader = request.headers.get('Authorization');
-        const user = await verifyAuth(authHeader);
+        const user = await verifyAuth(request);
 
         if (!user) {
             return NextResponse.json(
@@ -87,8 +86,7 @@ export async function GET(request) {
     try {
         await connectDB();
 
-        const authHeader = request.headers.get('Authorization');
-        const user = await verifyAuth(authHeader);
+        const user = await verifyAuth(request);
 
         if (!user) {
             return NextResponse.json(
