@@ -3,10 +3,11 @@ import CookingSession from '@/lib/models/CookingSession';
 import { NextResponse } from 'next/server';
 
 export async function PUT(request, { params }) {
+    const { id, stepNumber } = await params;
     try {
         await connectDB();
 
-        const session = await CookingSession.findById(params.id);
+        const session = await CookingSession.findById(id);
 
         if (!session) {
             return NextResponse.json(
@@ -15,7 +16,7 @@ export async function PUT(request, { params }) {
             );
         }
 
-        const step = session.steps.find(s => s.stepNumber === parseInt(params.stepNumber));
+        const step = session.steps.find(s => s.stepNumber === parseInt(stepNumber));
 
         if (!step) {
             return NextResponse.json(

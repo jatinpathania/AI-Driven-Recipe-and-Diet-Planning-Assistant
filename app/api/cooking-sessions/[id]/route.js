@@ -3,10 +3,11 @@ import CookingSession from '@/lib/models/CookingSession';
 import { NextResponse } from 'next/server';
 
 export async function GET(request, { params }) {
+    const { id } = await params;
     try {
         await connectDB();
 
-        const session = await CookingSession.findById(params.id).populate('recipeId');
+        const session = await CookingSession.findById(id).populate('recipeId');
 
         if (!session) {
             return NextResponse.json(
@@ -25,12 +26,13 @@ export async function GET(request, { params }) {
 }
 
 export async function PUT(request, { params }) {
+    const { id } = await params;
     try {
         await connectDB();
 
         const { status, remainingTime } = await request.json();
 
-        const session = await CookingSession.findById(params.id);
+        const session = await CookingSession.findById(id);
 
         if (!session) {
             return NextResponse.json(
@@ -66,10 +68,11 @@ export async function PUT(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
+    const { id } = await params;
     try {
         await connectDB();
 
-        const session = await CookingSession.findById(params.id);
+        const session = await CookingSession.findById(id);
 
         if (!session) {
             return NextResponse.json(

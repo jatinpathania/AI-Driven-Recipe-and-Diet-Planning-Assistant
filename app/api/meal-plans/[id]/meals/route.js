@@ -3,12 +3,13 @@ import MealPlan from '@/lib/models/MealPlan';
 import { NextResponse } from 'next/server';
 
 export async function POST(request, { params }) {
+    const { id } = await params;
     try {
         await connectDB();
 
         const { day, mealType, recipeId, recipeName, calories } = await request.json();
 
-        const mealPlan = await MealPlan.findById(params.id);
+        const mealPlan = await MealPlan.findById(id);
 
         if (!mealPlan) {
             return NextResponse.json(

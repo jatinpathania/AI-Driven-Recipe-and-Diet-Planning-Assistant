@@ -3,12 +3,13 @@ import MealPlan from '@/lib/models/MealPlan';
 import { NextResponse } from 'next/server';
 
 export async function PUT(request, { params }) {
+    const { id } = await params;
     try {
         await connectDB();
 
         const { meals } = await request.json();
 
-        const mealPlan = await MealPlan.findById(params.id);
+        const mealPlan = await MealPlan.findById(id);
 
         if (!mealPlan) {
             return NextResponse.json(
@@ -34,10 +35,11 @@ export async function PUT(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
+    const { id } = await params;
     try {
         await connectDB();
 
-        const mealPlan = await MealPlan.findById(params.id);
+        const mealPlan = await MealPlan.findById(id);
 
         if (!mealPlan) {
             return NextResponse.json(

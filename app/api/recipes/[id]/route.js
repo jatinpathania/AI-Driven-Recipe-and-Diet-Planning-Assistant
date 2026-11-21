@@ -6,6 +6,7 @@ import { deleteFromCloudinary } from '@/lib/config/cloudinary';
 import { NextResponse } from 'next/server';
 
 export async function GET(request, { params }) {
+    const { id } = await params;
     try {
         await connectDB();
         const user = await verifyAuth(request);
@@ -17,7 +18,7 @@ export async function GET(request, { params }) {
             );
         }
 
-        const recipe = await Recipe.findById(params.id);
+        const recipe = await Recipe.findById(id);
 
         if (!recipe) {
             return NextResponse.json(
@@ -40,6 +41,7 @@ export async function GET(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
+    const { id } = await params;
     try {
         await connectDB();
         const user = await verifyAuth(request);
@@ -51,7 +53,7 @@ export async function DELETE(request, { params }) {
             );
         }
 
-        const recipe = await Recipe.findById(params.id);
+        const recipe = await Recipe.findById(id);
 
         if (!recipe) {
             return NextResponse.json(
@@ -61,7 +63,7 @@ export async function DELETE(request, { params }) {
         }
 
         // Check if user owns the recipe
-        if (recipe.userId.toString() !== user._id.toString()) {
+        if (String(recipe.userId) !== String(user._id)) {
             return NextResponse.json(
                 { success: false, message: 'Not authorized to delete this recipe' },
                 { status: 403 }
