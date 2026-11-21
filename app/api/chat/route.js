@@ -1,96 +1,94 @@
-// Trigger hot reload compilation
-import connectDB from '@/lib/db/connectDB';
-import Recipe from '@/lib/models/Recipe';
-import { generateRecipeSuggestions } from '@/lib/config/qwen';
-import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server'
+import { generateRecipeSuggestions, estimateCalories, planDay } from '@/lib/ai/kitchen'
+import {
+    GUEST_PROMPT_LIMIT,
+    isSignedInRequest,
+    quotaPayload,
+    readGuestCount,
+    writeGuestCount,
+} from '@/lib/server/guestQuota'
+
+/**
+ * POST /api/chat
+ *
+ * body: { message, history?, mode?: 'chat' | 'estimate' | 'plan', preferences?, portion?, day? }
+ *
+ * Every mode is an AI prompt, so for guests every mode draws from the same
+ * free allowance. A guest past the limit gets 403 { code: 'GUEST_LIMIT' }
+ * and the client opens the sign-in gate.
+ *
+ * The route used to connect to Mongo and attach the three newest recipes in
+ * the whole database — anyone's — whenever a message contained "recipe" or
+ * "cook". Those cards had nothing to do with the answer and leaked other
+ * users' recipe names, so they are gone, and with them the DB round-trip.
+ */
+
+const sanitizePrefs = (p) => {
+    if (!p || typeof p !== 'object') return {}
+    return {
+        diet: typeof p.diet === 'string' ? p.diet : undefined,
+        avoid: Array.isArray(p.avoid) ? p.avoid.filter((a) => typeof a === 'string') : undefined,
+        skill: typeof p.skill === 'string' ? p.skill : undefined,
+        units: typeof p.units === 'string' ? p.units : undefined,
+        maxCookTime: Number(p.maxCookTime) || undefined,
+    }
+}
 
 export async function POST(request) {
+    let body
     try {
-        let dbConnected = false;
-        try {
-            await connectDB();
-            dbConnected = true;
-        } catch (dbError) {
-            console.error('Graceful Fallback - MongoDB not running:', dbError.message);
-        }
+        body = await request.json()
+    } catch {
+        return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 })
+    }
 
-        const { message, history } = await request.json();
+    const mode = ['chat', 'estimate', 'plan'].includes(body?.mode) ? body.mode : 'chat'
+    const message = typeof body?.message === 'string' ? body.message.trim() : ''
+    if (!message) return NextResponse.json({ message: 'Message is required' }, { status: 400 })
+    if (message.length > 2000) return NextResponse.json({ message: 'Message is too long' }, { status: 413 })
 
-        if (!message) {
-            return NextResponse.json(
-                { message: 'Message is required' },
-                { status: 400 }
-            );
-        }
+    const signedIn = await isSignedInRequest(request)
+    const used = signedIn ? 0 : readGuestCount(request)
 
-        // AI response from Qwen
-        const aiResponse = await generateRecipeSuggestions(message, history || []);
-
-        // Fetch recipe cards if the response mentions recipes
-        let recipeCards = [];
-        if (message.toLowerCase().includes('recipe') || message.toLowerCase().includes('cook')) {
-            if (dbConnected) {
-                try {
-                    const recipes = await Recipe.find().limit(3).sort({ createdAt: -1 });
-                    recipeCards = recipes.map(r => ({
-                        id: r._id,
-                        name: r.recipeName,
-                        time: r.time,
-                        calories: r.calories,
-                        emoji: r.emoji,
-                        difficulty: r.difficulty
-                    }));
-                } catch (err) {
-                    console.error('Failed to query recipes from DB, using fallback cards:', err.message);
-                    dbConnected = false;
-                }
-            }
-            
-            // Fallback recipes if DB query failed or MongoDB is not running
-            if (!dbConnected || recipeCards.length === 0) {
-                recipeCards = [
-                    {
-                        id: 'fallback-carbonara',
-                        name: 'Pasta Carbonara',
-                        time: '25m',
-                        calories: 520,
-                        emoji: '🍝',
-                        difficulty: 'Easy'
-                    },
-                    {
-                        id: 'fallback-ramen',
-                        name: 'Miso Ramen',
-                        time: '35m',
-                        calories: 380,
-                        emoji: '🍜',
-                        difficulty: 'Medium'
-                    },
-                    {
-                        id: 'fallback-tofu',
-                        name: 'Tofu Buddha Bowl',
-                        time: '20m',
-                        calories: 410,
-                        emoji: '🥗',
-                        difficulty: 'Easy'
-                    }
-                ];
-            }
-        }
-
+    if (!signedIn && used >= GUEST_PROMPT_LIMIT) {
         return NextResponse.json(
             {
-                message: aiResponse.message,
-                recipeCards,
-                success: aiResponse.success,
-                debug: aiResponse.raw || null
+                code: 'GUEST_LIMIT',
+                message: `You've used your ${GUEST_PROMPT_LIMIT} free prompts. Sign in to keep cooking with AI.`,
+                quota: quotaPayload(used),
             },
-            { status: 200 }
-        );
-    } catch (error) {
-        console.error('Error in chat API route:', error);
-        return NextResponse.json(
-            { message: error.message || 'An error occurred during chat processing' },
-            { status: 500 }
-        );
+            { status: 403 }
+        )
     }
+
+    const prefs = sanitizePrefs(body.preferences)
+    let result
+    let status = 200
+
+    try {
+        if (mode === 'estimate') {
+            result = await estimateCalories(message, body.portion)
+        } else if (mode === 'plan') {
+            result = await planDay(message, prefs)
+        } else {
+            result = await generateRecipeSuggestions(message, body.history, prefs)
+        }
+    } catch (error) {
+        console.error('Chat route error:', error)
+        result = { success: false, message: 'Something went wrong talking to the AI' }
+        status = 500
+    }
+
+    // Every prompt a guest sends counts, answered or not, so "3 free prompts"
+    // means three sends, exactly as the guest sees it.
+    const nextUsed = signedIn ? used : used + 1
+    const payload = {
+        ...result,
+        error: undefined,
+        ...(signedIn ? {} : { quota: quotaPayload(nextUsed) }),
+    }
+
+    const response = NextResponse.json(payload, { status })
+    if (!signedIn) writeGuestCount(response, nextUsed)
+    return response
 }

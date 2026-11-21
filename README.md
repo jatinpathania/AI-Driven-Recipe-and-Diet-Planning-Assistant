@@ -58,7 +58,7 @@ This app is especially helpful for:
 - **Middleware:** Custom authentication middleware, CORS support
 
 ### **AI & Third-Party APIs**
-- **Advanced AI Models:** Hugging Face Qwen (`Qwen/Qwen2.5-7B-Instruct`) via the Hugging Face Router (uses `HF_KEY`)
+- **AI Model:** Google Gemini (`gemini-3.5-flash-lite` by default, override with `GEMINI_MODEL`) via the Gemini API (uses `GEMINI_API_KEY`)
 - **Calorie Estimation:** Integrated calorie calculation algorithms
 
 ### **Development & Tools**
@@ -82,7 +82,8 @@ This app is especially helpful for:
 │   ├── Auth/                     # Authentication UI
 │   └── ui/                       # Generic UI components
 ├── lib/                          # Utility functions & configurations
-│   ├── config/                   # API configurations (Qwen AI provider, Cloudinary)
+│   ├── ai/                       # Gemini client (gemini.js) and kitchen prompts (kitchen.js)
+│   ├── config/                   # Cloudinary, uploads
 │   ├── db/                       # MongoDB connection
 │   ├── models/                   # Mongoose schemas
 │   └── middleware/               # Custom middleware
@@ -125,7 +126,8 @@ JWT_SECRET=your_jwt_secret
 NEXTAUTH_SECRET=your_nextauth_secret
 GOOGLE_CLIENT_ID=your_google_oauth_client_id
 GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret
-HF_KEY=your_huggingface_router_key_here
+GEMINI_API_KEY=your_gemini_api_key
+# GEMINI_MODEL=gemini-3.5-flash-lite   (optional)
 CLOUD_NAME=your_cloudinary_cloud_name
 CLOUD_API_KEY=your_cloudinary_api_key
 CLOUD_API_SECRET=your_cloudinary_api_secret
