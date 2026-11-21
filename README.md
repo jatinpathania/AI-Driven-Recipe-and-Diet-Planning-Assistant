@@ -59,6 +59,7 @@ This app is especially helpful for:
 
 ### **AI & Third-Party APIs**
 - **AI Model:** Google Gemini (`gemini-3.5-flash-lite` by default, override with `GEMINI_MODEL`) via the Gemini API (uses `GEMINI_API_KEY`)
+- **Cooking-only scope:** the assistant answers only food and cooking questions; anything else gets a fixed refusal ([lib/ai/kitchen.js](lib/ai/kitchen.js))
 - **Calorie Estimation:** Integrated calorie calculation algorithms
 
 ### **Development & Tools**

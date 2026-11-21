@@ -44,8 +44,14 @@ export async function POST(request) {
     const result = await parseIngredientsToRecipe(ingredients, body.preferences || {})
     if (!result.success) {
         const failed = NextResponse.json(
-            { success: false, message: result.message, ...(signedIn ? {} : { quota: quotaPayload(nextUsed) }) },
-            { status: 502 }
+            {
+                success: false,
+                message: result.message,
+                ...(result.offTopic ? { code: 'OFF_TOPIC' } : {}),
+                ...(signedIn ? {} : { quota: quotaPayload(nextUsed) }),
+            },
+            // Off-topic input is the request's fault, not the AI's.
+            { status: result.offTopic ? 422 : 502 }
         )
         if (!signedIn) writeGuestCount(failed, nextUsed)
         return failed
