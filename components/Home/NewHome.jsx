@@ -1,157 +1,122 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
-import { Send, X, ArrowUp, Check } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useSession } from 'next-auth/react'
-import Header from "@/components/Header/Header"
-import Footer from '@/components/Footer/Footer'
+import { useSession, signIn } from 'next-auth/react'
 import Link from 'next/link'
-import { isAuthenticated } from '@/utils/api'
+import { useRouter } from 'next/navigation'
+import Header from '@/components/Header/Header'
+import Footer from '@/components/Footer/Footer'
+import { isAuthenticated, signupUser, saveUserData, scheduleAutoLogout } from '@/utils/api'
+import { HeroScene, FeatureCube, ParallaxDepth, Reveal3D, useReducedMotionAfterMount } from '@/components/Home/Scene3D'
+import { CountUp, IngredientMarquee, HowItWorks, Features, Testimonials, Pricing, Faq } from '@/components/Home/LandingSections'
+import HeroChat from '@/components/Home/HeroChat'
+import './landing.css'
+
+/* Headline words flip up out of the page one after another. */
+const HEADLINE = [
+    [{ t: 'Your' }, { t: 'personal', em: true }, { t: 'chef,', em: true }],
+    [{ t: 'always' }, { t: 'in' }, { t: 'your' }, { t: 'pocket' }],
+]
+
+const LINE_OFFSETS = HEADLINE.map((_, li) => HEADLINE.slice(0, li).reduce((sum, l) => sum + l.length, 0))
+
+function FlipHeadline() {
+    return (
+        <h1 className="hero-title">
+            {HEADLINE.map((line, li) => (
+                <span key={li} className="hero-line">
+                    {line.map((w, wi) => {
+                        const i = LINE_OFFSETS[li] + wi
+                        const Word = (
+                            <motion.span
+                                key={w.t}
+                                className="hero-word"
+                                initial={{ opacity: 0, rotateX: -95, y: 24 }}
+                                animate={{ opacity: 1, rotateX: 0, y: 0 }}
+                                transition={{ duration: 0.75, delay: 0.1 + i * 0.07, ease: [0.22, 1, 0.36, 1] }}
+                            >
+                                {w.t}
+                            </motion.span>
+                        )
+                        return w.em ? <em key={w.t}>{Word}</em> : Word
+                    })}
+                </span>
+            ))}
+        </h1>
+    )
+}
+
+const usernameFromEmail = (email, attempt = 0) => {
+    const base = (email.split('@')[0] || 'chef').replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 20) || 'chef'
+    return attempt === 0 ? base : `${base}${Math.floor(1000 + Math.random() * 9000)}`
+}
 
 const Home = () => {
     const { data: session } = useSession()
-    const [messages, setMessages] = useState([
-        { role: 'ai', content: "👋 Hi! Tell me what ingredients you have and I&apos;ll suggest what to cook. Or just ask me anything about food!" }
-    ])
-    const [input, setInput] = useState('')
-    const [isTyping, setIsTyping] = useState(false)
-    const chatContainerRef = useRef(null)
+    const router = useRouter()
+    const reduceMotion = useReducedMotionAfterMount()
+
+    const [clientLoggedIn, setClientLoggedIn] = useState(null)
     const [isSignupOpen, setIsSignupOpen] = useState(false)
     const [signupSuccess, setSignupSuccess] = useState(false)
-    const [navScrolled, setNavScrolled] = useState(false)
-    
-    const [clientLoggedIn, setClientLoggedIn] = useState(null)
+    const [signupForm, setSignupForm] = useState({ fullName: '', email: '', password: '' })
+    const [signupError, setSignupError] = useState('')
+    const [signupBusy, setSignupBusy] = useState(false)
+    const [ctaEmail, setCtaEmail] = useState('')
 
     useEffect(() => {
         queueMicrotask(() => setClientLoggedIn(!!(session?.user || isAuthenticated())))
     }, [session])
 
-    const HERO_RESPONSES = [
-        {
-            match: ['chicken', 'lemon', 'garlic'],
-            reply: "Perfect combo! Here are 3 quick recipes:",
-            recipes: [
-                { e: '🍋', t: 'Lemon Garlic Chicken', m: '22 min · 380 kcal' },
-                { e: '🥗', t: 'Chicken Florentine', m: '28 min · 420 kcal' },
-                { e: '🫕', t: 'Chicken Piccata', m: '20 min · 350 kcal' }
-            ]
-        },
-        {
-            match: ['vegan', 'plant'],
-            reply: "Love the plant-based choice! How about these:",
-            recipes: [
-                { e: '🍲', t: 'Lentil & Spinach Curry', m: '30 min · 290 kcal' },
-                { e: '🌮', t: 'Black Bean Tacos', m: '15 min · 310 kcal' },
-                { e: '🥗', t: 'Chickpea Power Bowl', m: '10 min · 340 kcal' }
-            ]
-        },
-        {
-            match: ['protein', 'muscle', '500'],
-            reply: "Fueling those gains! Here are high-protein options:",
-            recipes: [
-                { e: '🍤', t: 'Garlic Butter Shrimp', m: '15 min · 340 kcal' },
-                { e: '🍗', t: 'Herb Roasted Chicken', m: '45 min · 480 kcal' },
-                { e: '🐟', t: 'Salmon with Quinoa', m: '25 min · 520 kcal' }
-            ]
-        },
-        {
-            match: ['15', 'quick', 'fast'],
-            reply: "Got it — under 15 minutes, no problem!",
-            recipes: [
-                { e: '🍳', t: 'Shakshuka', m: '12 min · 280 kcal' },
-                { e: '🥚', t: 'Egg Fried Rice', m: '10 min · 350 kcal' },
-                { e: '🫔', t: 'Turkey Wraps', m: '8 min · 320 kcal' }
-            ]
-        },
-        {
-            match: ['italian', 'pasta'],
-            reply: "Bello! Italian tonight it is 🇮🇹",
-            recipes: [
-                { e: '🍝', t: 'Pasta Carbonara', m: '25 min · 520 kcal' },
-                { e: '🍕', t: 'Margherita Pizza', m: '35 min · 480 kcal' },
-                { e: '🥗', t: 'Panzanella Salad', m: '15 min · 280 kcal' }
-            ]
-        },
-        {
-            match: ['egg', 'spinach', 'feta'],
-            reply: "Classic combo! Here&apos;s what I&apos;d make:",
-            recipes: [
-                { e: '🍳', t: 'Spinach & Feta Omelette', m: '10 min · 290 kcal' },
-                { e: '🥧', t: 'Feta & Egg Frittata', m: '20 min · 310 kcal' },
-                { e: '🥗', t: 'Greek Salad Bowl', m: '8 min · 220 kcal' }
-            ]
-        },
-    ]
-
-    const quickSuggestions = [
-        { text: '🍗 Chicken + lemon', query: 'I have chicken, garlic and lemon 🍋' },
-        { text: '🌱 Quick vegan dinner', query: 'Quick vegan dinner ideas please' },
-        { text: '💪 High protein', query: 'High protein meals under 500 calories' },
-        { text: '⚡ 15-min meals', query: 'What can I make in 15 minutes?' },
-        { text: '🍝 Italian tonight', query: 'I want something Italian tonight' }
-    ]
-
     useEffect(() => {
-        const handleScroll = () => {
-            setNavScrolled(window.scrollY > 40)
-        }
-        window.addEventListener('scroll', handleScroll)
-        return () => window.removeEventListener('scroll', handleScroll)
-    }, [])
-
-    useEffect(() => {
-        if (chatContainerRef.current) {
-            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
-        }
-    }, [messages])
-
-    useEffect(() => {
-        if (isSignupOpen) {
-            document.body.style.overflow = 'hidden'
-        } else {
-            document.body.style.overflow = 'unset'
-        }
+        if (!isSignupOpen) return undefined
+        document.body.style.overflow = 'hidden'
         return () => {
-            document.body.style.overflow = 'unset'
+            document.body.style.overflow = ''
         }
     }, [isSignupOpen])
 
-    const handleSend = (override) => {
-        const msg = override || input.trim()
-        if (!msg) return
-
-        setInput('')
-        setMessages(prev => [...prev, { role: 'user', content: msg }])
-        setIsTyping(true)
-
-        setTimeout(() => {
-            setIsTyping(false)
-            const res = getHeroResponse(msg)
-            setMessages(prev => [...prev, { role: 'ai', content: res.reply, recipes: res.recipes }])
-
-            setTimeout(() => {
-                setMessages(prev => [...prev, {
-                    role: 'ai',
-                    content: "✨ Want to unlock full recipes, step-by-step timers, calorie tracking and meal planning? Sign up free — takes 30 seconds!",
-                    hasSignup: true
-                }])
-            }, 1400)
-        }, 800)
+    const openSignup = (prefillEmail = '') => {
+        setSignupError('')
+        if (prefillEmail) setSignupForm((f) => ({ ...f, email: prefillEmail }))
+        setIsSignupOpen(true)
     }
 
-    const getHeroResponse = (msg) => {
-        const lower = msg.toLowerCase()
-        for (const r of HERO_RESPONSES) {
-            if (r.match.some(m => lower.includes(m))) return r
-        }
-        return {
-            reply: "Great choice! Here are some delicious ideas based on what you said:",
-            recipes: [
-                { e: '🥘', t: "Chef&apos;s Special Stew", m: '35 min · 410 kcal' },
-                { e: '🥗', t: 'Fresh Garden Salad', m: '10 min · 180 kcal' },
-                { e: '🍜', t: 'Noodle Bowl', m: '20 min · 380 kcal' }
-            ]
+    const handleModalSignup = async (e) => {
+        e.preventDefault()
+        setSignupError('')
+
+        const fullName = signupForm.fullName.trim()
+        const email = signupForm.email.trim()
+        const { password } = signupForm
+
+        if (!fullName) return setSignupError('Please enter your name')
+        if (!email) return setSignupError('Please enter your email')
+        if (password.length < 6) return setSignupError('Password must be at least 6 characters')
+
+        setSignupBusy(true)
+        try {
+            let res = null
+            // The API rejects duplicate usernames, so retry once with a suffix.
+            for (let attempt = 0; attempt < 2; attempt++) {
+                res = await signupUser({ username: usernameFromEmail(email, attempt), fullName, email, password })
+                    .catch((err) => ({ success: false, message: err.message }))
+                if (res?.success || !/username already exists/i.test(res?.message || '')) break
+            }
+
+            if (res?.success) {
+                saveUserData(res.data)
+                scheduleAutoLogout()
+                setSignupSuccess(true)
+            } else {
+                setSignupError(res?.message || 'Could not create your account. Please try again.')
+            }
+        } catch (err) {
+            setSignupError(err.message || 'Something went wrong')
+        } finally {
+            setSignupBusy(false)
         }
     }
 
@@ -160,282 +125,132 @@ const Home = () => {
             <Header overlay />
 
             <section className="hero">
-                <div className="hero-bg-emoji" style={{ top: '12%', left: '5%' }}>🍋</div>
-                <div className="hero-bg-emoji" style={{ top: '20%', right: '7%' }}>🥕</div>
-                <div className="hero-bg-emoji" style={{ top: '70%', left: '8%' }}>🥑</div>
-                <div className="hero-bg-emoji" style={{ top: '75%', right: '5%' }}>🍅</div>
-                <div className="hero-bg-emoji" style={{ top: '45%', left: '2%' }}>🫑</div>
-                <div className="hero-bg-emoji" style={{ top: '40%', right: '2%' }}>🥦</div>
+                <div className="hero-glow" aria-hidden="true" />
+                <div className="hero-grid-floor" aria-hidden="true" />
+                <HeroScene />
+
+                {/* small screens, where the 3D room is switched off */}
+                <div className="hero-bg-emoji" style={{ top: '12%', left: '5%' }} aria-hidden="true">🍋</div>
+                <div className="hero-bg-emoji" style={{ top: '20%', right: '7%' }} aria-hidden="true">🥕</div>
+                <div className="hero-bg-emoji" style={{ top: '70%', left: '8%' }} aria-hidden="true">🥑</div>
+                <div className="hero-bg-emoji" style={{ top: '75%', right: '5%' }} aria-hidden="true">🍅</div>
 
                 <motion.div
                     className="hero-badge"
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={{ opacity: 0, y: -16, rotateX: 60 }}
+                    animate={{ opacity: 1, y: 0, rotateX: 0 }}
                     transition={{ duration: 0.6 }}
                 >
-                    <div className="hero-badge-dot"></div>
-                    Confident Cooking, Better Living.
+                    <span className="hero-badge-dot" />
+                    AI kitchen companion
                 </motion.div>
 
-                <motion.h1
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.1 }}
-                >
-                    Your <em>personal chef</em>,<br />always in your pocket
-                </motion.h1>
+                <FlipHeadline />
 
                 <motion.p
                     className="hero-subtitle"
-                    initial={{ opacity: 0, y: -20 }}
+                    initial={{ opacity: 0, y: 14 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.2 }}
+                    transition={{ duration: 0.6, delay: 0.55 }}
                 >
-                    Just tell Flavour.AI what&apos;s in your fridge — it plans meals, generates recipes, tracks calories, and guides you step-by-step through cooking.
-                    Just tell Flavour.AI what's in your fridge 
-                    it plans meals, generates recipes, tracks calories, and guides you step-by-step through cooking.
+                    Say what&apos;s in your fridge. Get dinner in seconds.
                 </motion.p>
 
                 <motion.div
-                    className="hero-chat"
-                    initial={{ opacity: 0, y: 20 }}
+                    className="hero-cta"
+                    initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.7, delay: 0.3 }}
+                    transition={{ duration: 0.6, delay: 0.65 }}
                 >
-                    <div className="hc-header">
-                        <div className="hc-dots">
-                            <div className="hc-dot"></div>
-                            <div className="hc-dot"></div>
-                            <div className="hc-dot"></div>
-                        </div>
-                        <div className="hc-title">✦ Flavour AI</div>
-                        <div className="hc-status">
-                            <div className="hc-status-dot"></div> Live
-                        </div>
-                    </div>
+                    <Link href={clientLoggedIn ? '/kitchen' : '/signup'} className="hero-cta-primary">
+                        {clientLoggedIn ? 'Open your kitchen' : 'Start cooking free'}
+                        <span aria-hidden="true">→</span>
+                    </Link>
+                    <a href="#how" className="hero-cta-ghost">How it works</a>
+                </motion.div>
 
-                    <div className="hc-messages" ref={chatContainerRef}>
-                        {messages.map((msg, i) => (
-                            <motion.div
-                                key={i}
-                                className={`hc-msg ${msg.role === 'user' ? 'user' : ''}`}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.3 }}
-                            >
-                                <div className={`hc-av ${msg.role === 'ai' ? 'ai' : 'usr'}`}>
-                                    {msg.role === 'ai' ? '🥦' : '👤'}
-                                </div>
-                                <div>
-                                    <div className="hc-bubble">{msg.content}</div>
-                                    {msg.recipes && (
-                                        <div className="hc-recipe-chips">
-                                            {msg.recipes.map((r, ri) => (
-                                                <div key={ri} className="hc-recipe-chip" onClick={() => setIsSignupOpen(true)}>
-                                                    <span style={{ fontSize: '20px' }}>{r.e}</span>
-                                                    <div>
-                                                        <strong>{r.t}</strong>
-                                                        <div style={{ fontSize: '10px', color: '#6b8575', marginTop: '1px' }}>{r.m}</div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                    {msg.hasSignup && (
-                                        <div style={{ marginTop: '10px', display: 'flex', gap: '8px' }}>
-                                            <Link href="/kitchen">
-                                                <button className="hc-signup-btn">
-                                                    🍳 Start Cooking →
-                                                </button>
-                                            </Link>
-                                            <button onClick={() => setIsSignupOpen(true)} className="hc-signup-btn" style={{ background: 'transparent', border: '2px solid var(--g)', color: 'var(--g)' }}>
-                                                Sign Up Free
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            </motion.div>
-                        ))}
-                        {isTyping && (
-                            <div className="hc-msg">
-                                <div className="hc-av ai">🥦</div>
-                                <div className="hc-bubble">
-                                    <div className="typing-ind">
-                                        <span></span><span></span><span></span>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="hc-suggestions">
-                        {quickSuggestions.map((sug, i) => (
-                            <div key={i} className="hc-sug" onClick={() => handleSend(sug.query)}>
-                                {sug.text}
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="hc-input-row">
-                        <input
-                            className="hc-input"
-                            type="text"
-                            placeholder="e.g. &apos;I have eggs, spinach and feta...&apos;"
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                        />
-                        <button className="hc-send" onClick={() => handleSend()}>
-                            <ArrowUp size={16} />
-                        </button>
-                    </div>
+                <motion.div
+                    className="hero-chat-stage"
+                    initial={{ opacity: 0, y: 60, rotateX: reduceMotion ? 0 : 28, scale: 0.94 }}
+                    animate={{ opacity: 1, y: 0, rotateX: 0, scale: 1 }}
+                    transition={{ duration: 1, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                >
+                    {/* No pointer tilt here: a card that rotates under the cursor makes
+                        Chrome mis-hit-test its chips and send button, so clicks fell
+                        through to the strip behind them. */}
+                    <HeroChat />
                 </motion.div>
 
                 <motion.div
                     className="hero-proof"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.5 }}
+                    transition={{ duration: 0.6, delay: 0.9 }}
                 >
-                    <div className="proof-avatars">
-                        <div className="proof-av">👩</div>
-                        <div className="proof-av">👨</div>
-                        <div className="proof-av">👩‍🦱</div>
-                        <div className="proof-av">🧑</div>
-                        <div className="proof-av">👩‍🦳</div>
-                    </div>
-                    
-                    <div className="proof-sep"></div>
-                    <div className="proof-stat">
-                        <div className="proof-stat-val">10+</div>
-                        <div className="proof-stat-lbl">Recipes Generated</div>
-                    </div>
+                    {[
+                        { v: <CountUp to={30} suffix="s" />, l: 'to a recipe' },
+                        { v: <CountUp to={6} />, l: 'tools' },
+                        { v: <>&#8377;<CountUp to={0} /></>, l: 'to start' },
+                    ].map((s, i) => (
+                        <React.Fragment key={s.l}>
+                            {i > 0 && <span className="proof-sep" aria-hidden="true" />}
+                            <div className="proof-stat">
+                                <div className="proof-stat-val">{s.v}</div>
+                                <div className="proof-stat-lbl">{s.l}</div>
+                            </div>
+                        </React.Fragment>
+                    ))}
                 </motion.div>
             </section>
 
-            <div className="logos-strip">
-                <span className="logos-label">As seen in</span>
-                <div className="logos-list">
-                    <span className="logo-item">TechCrunch</span>
-                    <span className="logo-item">Product Hunt</span>
-                    <span className="logo-item">Food & Wine</span>
-                    <span className="logo-item">The Verge</span>
-                    <span className="logo-item">Bon Appétit</span>
-                </div>
-            </div>
+            <IngredientMarquee />
 
-            <section id="how" className="section">
-                <div className="section-label">Simple as 1, 2, 3</div>
-                <h2 className="section-title">Cooking has never been<br />this <em>effortless</em></h2>
-                <p className="section-sub">From empty fridge to delicious dinner in minutes. No culinary degree required.</p>
-                <div className="how-steps">
-                    <div className="how-step">
-                        <div className="step-num-wrap">
-                            <div className="step-emoji">🥦</div>
-                            <div className="step-badge">1</div>
-                        </div>
-                        <h3>Tell us what you have</h3>
-                        <p>Type your ingredients, dietary preferences, or craving. Our AI understands natural language perfectly.</p>
-                    </div>
-                    <div className="how-step">
-                        <div className="step-num-wrap">
-                            <div className="step-emoji">✨</div>
-                            <div className="step-badge">2</div>
-                        </div>
-                        <h3>Get personalized recipes</h3>
-                        <p>Flavour.AI generates tailored recipes with full instructions, nutrition info, and cook times in seconds.</p>
-                    </div>
-                    <div className="how-step">
-                        <div className="step-num-wrap">
-                            <div className="step-emoji">🍽️</div>
-                            <div className="step-badge">3</div>
-                        </div>
-                        <h3>Cook with guidance</h3>
-                        <p>Follow step-by-step with built-in timers, track calories automatically, and plan your whole week.</p>
-                    </div>
-                </div>
+            <section className="cube-section">
+                <Reveal3D className="cube-copy">
+                    <div className="section-label">One app</div>
+                    <h2 className="section-title cube-title">Six tools.<br />One <em>kitchen</em>.</h2>
+                </Reveal3D>
+                <ParallaxDepth speed={36} className="cube-holder">
+                    <FeatureCube />
+                </ParallaxDepth>
             </section>
 
-            <section id="features" className="section features-section">
-                <div className="section-label">Everything you need</div>
-                <h2 className="section-title">One app for your<br />entire culinary life</h2>
-                <p className="section-sub">Six powerful tools, all working together seamlessly — and all powered by AI.</p>
-                <div className="features-grid">
-                    {[
-                        { icon: '✦', title: 'AI Chef Chat', desc: 'A real-time AI chef that answers any food question, generates custom recipes from your ingredients, and guides you through cooking.', tag: 'Qwen 2.5' },
-                        { icon: '⏱️', title: 'Smart Cooking Timer', desc: 'Visual countdown timers that sync with your recipe steps. Audio alerts so you never overcook again.', tag: 'Step-by-step' },
-                        { icon: '🔥', title: 'Calorie Tracker', desc: 'Log meals in seconds, track macros, set daily goals and visualize your weekly nutrition patterns — no spreadsheets needed.', tag: 'Macro tracking' },
-                        { icon: '📅', title: 'Weekly Meal Planner', desc: 'Drag-and-drop meal planning for the whole week. The AI can auto-fill your plan based on your goals and preferences.', tag: 'Auto-planning' },
-                        { icon: '📝', title: 'Recipe Notes', desc: 'Save recipes, shopping lists, and meal plan notes in one place. Organized by category, searchable, always with you.', tag: 'Searchable' },
-                        { icon: '🍽️', title: 'Recipe Library', desc: 'Browse hundreds of curated recipes filtered by diet, time, difficulty and cuisine. Each one links directly to timers and calorie tracking.', tag: '10+ recipes' }
-                    ].map((feat, i) => (
-                        <motion.div
-                            key={i}
-                            className="feat-card"
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.5, delay: i * 0.1 }}
-                        >
-                            <div className="feat-icon-wrap">{feat.icon}</div>
-                            <h3>{feat.title}</h3>
-                            <p>{feat.desc}</p>
-                            <span className="feat-tag">{feat.tag}</span>
-                        </motion.div>
-                    ))}
-                </div>
-            </section>
-
-            <section id="testimonials" className="section testimonials-section">
-                <div className="section-label">Real people, real meals</div>
-                <h2 className="section-title">They tried it.<br />They&apos;re hooked.</h2>
-                <p className="section-sub">Join these home cooks who&apos;ve transformed their relationship with food.</p>
-                <div className="testi-grid">
-                    {[
-                        { stars: 5, text: "Really loving this app. I typed what I had in the fridge and it suggested a simple, tasty paneer recipe that my whole family liked — no fuss, no weird ingredients. The timers and shopping list saved me a ton of time. Highly recommend for busy homes.", name: 'Anmol', role: 'Home cook · Punjab', avatar: '👨' },
-                        { stars: 5, text: "This app is a lifesaver on work nights. The calorie tracker + step-by-step timers help me eat better without overthinking meals. Recipes are practical and quick — exactly what I need after a long day.", name: 'Ansh', role: 'Working professional · Delhi', avatar: '🧑' },
-                        { stars: 5, text: "I wanted more high-protein, home-style meals and this app delivers. The meal planner filled my week with easy recipes I can actually make, and the portion info is useful for my workouts. Clean UI, no bloat — very happy.", name: 'Sunny', role: 'Fitness enthusiast · Haryana', avatar: '💪' },
-                        { stars: 5, text: "Love how simple and realistic the recipes are — nothing fancy, just good food with ingredients I already have. The AI adapts well when I swap items, and saving recipes for offline use is great up here.", name: 'Abhishek', role: 'Home cook · Himachal Pradesh', avatar: '🧑‍🍳' },
-                        { stars: 5, text: "Makes weekly meal prep so much easier. I use the grocery list feature and the app auto-fills meals based on my preferences — saved me hours. Taste and portions feel homemade, not like generic app recipes.", name: 'Vansh', role: 'Meal planner · Punjab', avatar: '🥗' },
-                        { stars: 5, text: "Honestly impressed — the AI actually understands what I mean when I ask for quick, healthy dinners. The recipe steps are short and clear, and the built-in timers keep me on track. Been recommending it to friends already.", name: 'Vaibhav', role: 'Home cook · Delhi', avatar: '👨' }
-                    ].map((testi, i) => (
-                        <motion.div
-                            key={i}
-                            className="testi-card"
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.5, delay: i * 0.1 }}
-                        >
-                            <div className="testi-stars">{'★'.repeat(testi.stars)}{'☆'.repeat(5 - testi.stars)}</div>
-                                            <p className="testi-text">&ldquo;{testi.text}&rdquo;</p>
-                            <div className="testi-author">
-                                <div className="testi-av">{testi.avatar}</div>
-                                <div>
-                                    <div className="testi-name">{testi.name}</div>
-                                    <div className="testi-role">{testi.role}</div>
-                                </div>
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
-            </section>
+            <HowItWorks />
+            <Features />
+            <Testimonials />
+            <Pricing />
+            <Faq />
 
             {clientLoggedIn === false && (
                 <section id="cta" className="cta-section">
-                    <h2>Start cooking smarter<br />today. It&apos;s free.</h2>
-                    <p>No credit card. No commitment. Just better meals starting tonight.</p>
-                    <div className="cta-form">
+                    <div className="cta-orbit" aria-hidden="true">
+                        {['🥦', '🍋', '🥕', '🍅', '🥑', '🫑'].map((e, i) => (
+                            <span key={e} style={{ '--i': i }}>{e}</span>
+                        ))}
+                    </div>
+                    <Reveal3D>
+                        <h2>Dinner&apos;s sorted. <em>Start free.</em></h2>
+                    </Reveal3D>
+                    <form
+                        className="cta-form"
+                        onSubmit={(e) => {
+                            e.preventDefault()
+                            openSignup(ctaEmail.trim())
+                        }}
+                    >
+                        <label className="sr-only" htmlFor="cta-email">Email address</label>
                         <input
+                            id="cta-email"
                             className="cta-email"
                             type="email"
-                            placeholder="Enter your email..."
+                            autoComplete="email"
+                            placeholder="you@email.com"
+                            value={ctaEmail}
+                            onChange={(e) => setCtaEmail(e.target.value)}
                         />
-                        <button className="cta-btn" onClick={() => setIsSignupOpen(true)}>
-                            Get started free →
-                        </button>
-                    </div>
-                    <p className="cta-note">🔒 No spam. Unsubscribe anytime. Free forever plan included.</p>
+                        <button className="cta-btn" type="submit">Get started →</button>
+                    </form>
+                    <p className="cta-note">No card. No spam.</p>
                 </section>
             )}
 
@@ -449,57 +264,97 @@ const Home = () => {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={() => !signupSuccess && setIsSignupOpen(false)}
+                        style={{ perspective: 1200 }}
                     >
                         <motion.div
                             className="modal-box"
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="signup-title"
+                            initial={{ opacity: 0, rotateX: 24, y: 40, scale: 0.94 }}
+                            animate={{ opacity: 1, rotateX: 0, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, rotateX: -14, y: 20, scale: 0.96 }}
+                            transition={{ type: 'spring', stiffness: 260, damping: 24 }}
                             onClick={(e) => e.stopPropagation()}
                         >
                             {!signupSuccess ? (
                                 <>
                                     <div className="modal-top">
-                                        <h2>Start cooking smarter 🥦</h2>
-                                        <button className="modal-close-btn" onClick={() => setIsSignupOpen(false)}>
+                                        <h2 id="signup-title">Start cooking smarter 🥦</h2>
+                                        <button className="modal-close-btn" onClick={() => setIsSignupOpen(false)} aria-label="Close">
                                             <X size={16} />
                                         </button>
                                     </div>
-                                    <Link href="/signup" onClick={() => setIsSignupOpen(false)}>
-                                        <button className="modal-google">
-                                            <svg width="18" height="18" viewBox="0 0 48 48">
-                                                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
-                                                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
-                                                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
-                                                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.29-8.16 2.29-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
-                                            </svg>
-                                            Continue with Google
-                                        </button>
-                                    </Link>
+                                    <button
+                                        type="button"
+                                        className="modal-google"
+                                        onClick={() => signIn('google', { callbackUrl: '/kitchen' })}
+                                    >
+                                        <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+                                            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                                            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                                            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                                            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.29-8.16 2.29-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+                                        </svg>
+                                        Continue with Google
+                                    </button>
                                     <div className="modal-divider"><span>or</span></div>
-                                    <Link href="/signup" onClick={() => setIsSignupOpen(false)}>
-                                        <input className="modal-input" type="text" placeholder="Your name" />
-                                    </Link>
-                                    <Link href="/signup" onClick={() => setIsSignupOpen(false)}>
-                                        <input className="modal-input" type="email" placeholder="Email address" />
-                                    </Link>
-                                    <Link href="/signup" onClick={() => setIsSignupOpen(false)}>
-                                        <input className="modal-input" type="password" placeholder="Create a password (min 8 chars)" />
-                                    </Link>
-                                    <Link href="/signup" onClick={() => setIsSignupOpen(false)}>
-                                        <button className="modal-submit">
-                                            Create free account →
+
+                                    <form onSubmit={handleModalSignup} noValidate>
+                                        <input
+                                            className="modal-input"
+                                            type="text"
+                                            autoComplete="name"
+                                            placeholder="Your name"
+                                            aria-label="Your name"
+                                            value={signupForm.fullName}
+                                            onChange={(e) => setSignupForm({ ...signupForm, fullName: e.target.value })}
+                                        />
+                                        <input
+                                            className="modal-input"
+                                            type="email"
+                                            autoComplete="email"
+                                            placeholder="Email address"
+                                            aria-label="Email address"
+                                            value={signupForm.email}
+                                            onChange={(e) => setSignupForm({ ...signupForm, email: e.target.value })}
+                                        />
+                                        <input
+                                            className="modal-input"
+                                            type="password"
+                                            autoComplete="new-password"
+                                            placeholder="Password (6+ characters)"
+                                            aria-label="Password"
+                                            value={signupForm.password}
+                                            onChange={(e) => setSignupForm({ ...signupForm, password: e.target.value })}
+                                        />
+
+                                        {signupError && <p className="modal-error" role="alert">{signupError}</p>}
+
+                                        <button className="modal-submit" type="submit" disabled={signupBusy}>
+                                            {signupBusy ? 'Creating your account…' : 'Create free account →'}
                                         </button>
-                                    </Link>
-                                    <p className="modal-fine">By signing up you agree to our <u>Terms</u> and <u>Privacy Policy</u>. No credit card required.</p>
+                                    </form>
+
+                                    <p className="modal-fine">
+                                        Have an account?{' '}
+                                        <Link href="/login" className="modal-link" onClick={() => setIsSignupOpen(false)}>Sign in</Link>
+                                    </p>
                                 </>
                             ) : (
                                 <div className="success-state">
-                                    <div className="success-emoji">🎉</div>
-                                    <h3>Welcome to Flavour.AI!</h3>
-                                    <p>Your account is ready. You&apos;re about to eat better, cook smarter, and waste less food.<br /><br /><strong>Check your email</strong> for your login link!</p>
-                                    <button onClick={() => { setIsSignupOpen(false); setSignupSuccess(false); }} className="modal-submit" style={{ marginTop: '20px' }}>
-                                        Let&apos;s cook! →
+                                    <motion.div
+                                        className="success-emoji"
+                                        initial={{ rotateY: -180, scale: 0.4 }}
+                                        animate={{ rotateY: 0, scale: 1 }}
+                                        transition={{ type: 'spring', stiffness: 200, damping: 14 }}
+                                    >
+                                        🎉
+                                    </motion.div>
+                                    <h3>You&apos;re in!</h3>
+                                    <p>Unlimited AI is unlocked. Let&apos;s cook.</p>
+                                    <button onClick={() => router.push('/kitchen')} className="modal-submit" style={{ marginTop: '20px' }}>
+                                        Open my kitchen →
                                     </button>
                                 </div>
                             )}

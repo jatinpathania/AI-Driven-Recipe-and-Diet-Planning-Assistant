@@ -4,6 +4,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
+  --breakpoint-xs: 26.75rem; /* 428px — large phones */
   --animate-aurora: aurora 60s linear infinite;
   @keyframes aurora {
     from {
@@ -73,19 +74,20 @@ body {
   overflow-x: hidden;
 }
 
-/* Map common hardcoded Tailwind arbitrary color classes to CSS variables
-   so components using bg-[#111A14] etc. follow the theme variables. */
-[class*="bg-[#070B09]"] { background-color: var(--bg-base) !important; }
-[class*="bg-[#0B120E]"] { background-color: var(--bg-panel) !important; }
-[class*="bg-[#111A14]"] { background-color: var(--bg-card) !important; }
-[class*="bg-[#1A271E]"] { background-color: var(--bg-hover) !important; }
-[class*="bg-[#070B09]"] { background: var(--bg-base) !important; }
-[class*="text-[#F3F4F6]"] { color: var(--text-main) !important; }
-[class*="text-[#829A8B]"] { color: var(--text-muted) !important; }
-[class*="border-[#1A271E]"] { border-color: var(--border) !important; }
-[class*="border-[#24362A]"] { border-color: var(--border-light) !important; }
-
-
+/* Map common hardcoded Tailwind arbitrary color classes to the kitchen theme
+   variables so components using bg-[#111A14] etc. follow light/dark mode.
+   Scoped to .kitchen-root because the variables only exist there: unscoped,
+   these also matched `dark:bg-[#0B120E]` on the sign-in popup (which renders
+   outside the kitchen) and resolved to an undefined variable, leaving the
+   popup's background transparent. */
+.kitchen-root [class*="bg-[#070B09]"] { background-color: var(--bg-base) !important; }
+.kitchen-root [class*="bg-[#0B120E]"] { background-color: var(--bg-panel) !important; }
+.kitchen-root [class*="bg-[#111A14]"] { background-color: var(--bg-card) !important; }
+.kitchen-root [class*="bg-[#1A271E]"] { background-color: var(--bg-hover) !important; }
+.kitchen-root [class*="text-[#F3F4F6]"] { color: var(--text-main) !important; }
+.kitchen-root [class*="text-[#829A8B]"] { color: var(--text-muted) !important; }
+.kitchen-root [class*="border-[#1A271E]"] { border-color: var(--border) !important; }
+.kitchen-root [class*="border-[#24362A]"] { border-color: var(--border-light) !important; }
 
 /* Hide scrollbar utility */
 .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -95,8 +97,22 @@ body {
   overflow-x: hidden;
 }
 
+/* Tags overlaid on recipe photography: the translucent brand tints alone sat
+   at roughly 1.5:1 against bright food images. Give them a dark plate. */
+.tag-on-media {
+  background: rgba(7, 11, 9, 0.82) !important;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.tag-on-media.tag-brand { color: #6ee7b7 !important; }
+.tag-on-media.tag-warning { color: #fcd34d !important; }
+.tag-on-media.tag-danger { color: #fca5a5 !important; }
+
 .hero {
   min-height: 100vh;
+  min-height: 100svh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -106,6 +122,26 @@ body {
   position: relative;
   background: radial-gradient(ellipse 80% 60% at 50% 0%, #d4f0de 0%, #ffffff 60%);
   overflow: hidden;
+  /* establishes the shared depth space for the orbit + chat card */
+  perspective: 1600px;
+  perspective-origin: 50% 40%;
+}
+
+.hero-glow {
+  position: absolute;
+  top: -18%;
+  left: 50%;
+  width: min(900px, 120vw);
+  height: min(900px, 120vw);
+  transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(39, 174, 96, 0.16) 0%, rgba(39, 174, 96, 0) 62%);
+  pointer-events: none;
+  animation: glowPulse 9s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.75; transform: translateX(-50%) scale(1); }
+  50%      { opacity: 1;    transform: translateX(-50%) scale(1.08); }
 }
 
 .hero-bg-emoji {
@@ -176,15 +212,25 @@ body {
   font-weight: 500;
 }
 
-.hero-chat {
+/* The entrance flip takes its perspective from .hero. Nothing here builds a 3D
+   context at rest, so the chat's chips and buttons hit-test like normal 2D UI. */
+.hero-chat-stage {
   width: 100%;
   max-width: 640px;
+  margin-bottom: 48px;
+}
+
+.hero-chat {
+  width: 100%;
   background: var(--white);
   border-radius: 24px;
-  box-shadow: 0 8px 60px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+  box-shadow:
+    0 8px 60px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.06),
+    0 40px 80px -40px rgba(27, 94, 32, 0.35);
   border: 1px solid var(--border);
   overflow: hidden;
-  margin-bottom: 48px;
+  text-align: left;
 }
 
 .hc-header {
@@ -328,22 +374,6 @@ body {
   font-size: 11px;
 }
 
-.hc-signup-btn {
-  background: var(--g);
-  color: white;
-  border: none;
-  border-radius: 9px;
-  padding: 8px 18px;
-  font-size: 12.5px;
-  font-weight: 800;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.hc-signup-btn:hover {
-  background: var(--dark);
-}
-
 .hc-suggestions {
   display: flex;
   gap: 7px;
@@ -461,36 +491,6 @@ body {
   justify-content: center;
 }
 
-.proof-avatars {
-  display: flex;
-}
-
-.proof-av {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: 2.5px solid white;
-  margin-left: -10px;
-  display: grid;
-  place-items: center;
-  font-size: 15px;
-  background: var(--gp);
-}
-
-.proof-av:first-child {
-  margin-left: 0;
-}
-
-.proof-text {
-  font-size: 13px;
-  color: var(--muted);
-  font-weight: 600;
-}
-
-.proof-text strong {
-  color: var(--text);
-}
-
 .proof-sep {
   width: 1px;
   height: 24px;
@@ -512,41 +512,6 @@ body {
   font-size: 11px;
   color: var(--muted);
   font-weight: 700;
-}
-
-.logos-strip {
-  background: var(--cream);
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  padding: 24px 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-}
-
-.logos-label {
-  font-size: 12px;
-  color: var(--muted);
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  white-space: nowrap;
-}
-
-.logos-list {
-  display: flex;
-  align-items: center;
-  gap: 36px;
-  overflow: hidden;
-}
-
-.logo-item {
-  font-size: 13px;
-  font-weight: 800;
-  color: #aaa;
-  letter-spacing: -0.3px;
-  white-space: nowrap;
 }
 
 .section {
@@ -625,14 +590,9 @@ body {
   box-shadow: 0 4px 16px rgba(0,0,0,0.06);
 }
 
-.step-num-wrap:hover {
+.step-tilt:hover .step-num-wrap {
   border-color: var(--g);
-  transform: scale(1.05);
-  box-shadow: 0 8px 24px rgba(26,122,60,0.15);
-}
-
-.step-emoji {
-  font-size: 36px;
+  box-shadow: 0 18px 36px -12px rgba(26, 122, 60, 0.35);
 }
 
 .step-badge {
@@ -675,81 +635,6 @@ body {
   margin: 0 auto;
 }
 
-.feat-card {
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 28px;
-  transition: all 0.25s;
-  cursor: default;
-  position: relative;
-  overflow: hidden;
-}
-
-.feat-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, var(--gp) 0%, transparent 60%);
-  opacity: 0;
-  transition: opacity 0.3s;
-  border-radius: 20px;
-}
-
-.feat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.1);
-  border-color: var(--gb);
-}
-
-.feat-card:hover::before {
-  opacity: 1;
-}
-
-.feat-icon-wrap {
-  width: 52px;
-  height: 52px;
-  background: var(--gp);
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  margin-bottom: 16px;
-  position: relative;
-  z-index: 1;
-}
-
-.feat-card h3 {
-  font-size: 16px;
-  font-weight: 800;
-  margin-bottom: 8px;
-  position: relative;
-  z-index: 1;
-}
-
-.feat-card p {
-  font-size: 13.5px;
-  color: var(--muted);
-  line-height: 1.6;
-  position: relative;
-  z-index: 1;
-}
-
-.feat-tag {
-  display: inline-block;
-  margin-top: 12px;
-  background: var(--gp);
-  border: 1px solid var(--gb);
-  border-radius: 6px;
-  padding: 3px 9px;
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--g);
-  position: relative;
-  z-index: 1;
-}
-
 .testimonials-section {
   background: var(--dark);
   color: white;
@@ -765,14 +650,6 @@ body {
 
 .testimonials-section .section-label {
   color: var(--accent);
-}
-
-.testi-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  max-width: 1100px;
-  margin: 0 auto;
 }
 
 .testi-card {
@@ -837,19 +714,6 @@ body {
   padding: 100px 48px;
   position: relative;
   overflow: hidden;
-}
-
-.cta-section::before {
-  content: '🥦🍋🥕🍅🥑🫑';
-  font-size: 60px;
-  position: absolute;
-  top: -20px;
-  left: -20px;
-  opacity: 0.06;
-  transform: rotate(-15deg);
-  white-space: nowrap;
-  letter-spacing: 10px;
-  pointer-events: none;
 }
 
 .cta-section h2 {
@@ -938,10 +802,36 @@ body {
 .modal-box {
   background: white;
   border-radius: 24px;
-  padding: 40px;
+  padding: clamp(24px, 5vw, 40px);
   max-width: 440px;
   width: 100%;
-  box-shadow: 0 24px 80px rgba(0,0,0,0.25);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25);
+}
+
+.modal-error {
+  font-size: 13px;
+  font-weight: 600;
+  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 10px;
+  padding: 9px 12px;
+  margin: 2px 0 10px;
+  text-align: center;
+}
+
+.modal-link {
+  color: var(--g);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.modal-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .modal-top {
@@ -1083,34 +973,810 @@ body {
   line-height: 1.6;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   3D SCENE — landing page only
+   Pure CSS 3D (perspective + preserve-3d) animated by
+   framer-motion. Composited on the GPU, so it stays cheap.
+   ═══════════════════════════════════════════════════════════ */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ── Pointer-tracked tilt ─────────────────────────────────── */
+.tilt-root {
+  perspective: 1000px;
+  transform-style: preserve-3d;
+}
+
+.tilt-inner {
+  position: relative;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.tilt-glare {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+  z-index: 3;
+}
+
+/* ── Hero layering ────────────────────────────────────────────
+   Everything the user reads sits above the 3D background layers
+   (the parallax room and grid floor live in components/Home/landing.css). */
+.hero > *:not(.hero-scene):not(.hero-grid-floor):not(.hero-glow):not(.hero-bg-emoji) {
+  position: relative;
+  z-index: 2;
+}
+
+/* ── Rotating feature cube ────────────────────────────────── */
+.cube-section {
+  --cube-size: 200px;
+  display: grid;
+  grid-template-columns: 1fr minmax(260px, 420px);
+  align-items: center;
+  gap: 48px;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 100px 48px;
+}
+
+.cube-copy .section-label,
+.cube-title,
+.cube-sub {
+  text-align: left;
+}
+
+.cube-sub {
+  margin: 0;
+  max-width: 440px;
+}
+
+.cube-holder {
+  display: grid;
+  place-items: center;
+}
+
+.cube-scene {
+  position: relative;
+  width: var(--cube-size);
+  height: var(--cube-size);
+  perspective: 900px;
+  margin: 0 auto;
+}
+
+.cube {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.cube-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 20px;
+  border: 1px solid var(--gb);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(232, 245, 233, 0.88));
+  box-shadow: inset 0 0 40px rgba(27, 94, 32, 0.08);
+  backface-visibility: hidden;
+}
+
+.cube-face-icon { font-size: 44px; line-height: 1; }
+
+.cube-face-label {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--g);
+}
+
+.cube-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: -46px;
+  width: 78%;
+  height: 22px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse, rgba(27, 94, 32, 0.26), transparent 70%);
+  filter: blur(7px);
+  animation: cubeShadow 24s linear infinite;
+}
+
+@keyframes cubeShadow {
+  0%, 100% { transform: translateX(-50%) scaleX(1); opacity: 0.6; }
+  25%      { transform: translateX(-50%) scaleX(0.78); opacity: 0.4; }
+  50%      { transform: translateX(-50%) scaleX(1); opacity: 0.6; }
+  75%      { transform: translateX(-50%) scaleX(0.78); opacity: 0.4; }
+}
+
+/* Static grid shown instead of the cube under prefers-reduced-motion */
+.cube-fallback {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  max-width: 380px;
+}
+
+.cube-fallback-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--gb);
+  background: var(--gp);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--g);
+}
+
+.cube-fallback-item span { font-size: 20px; }
+
+/* ── "How it works" steps ─────────────────────────────────── */
+.how-steps { perspective: 1200px; }
+
+.how-step { transform-style: preserve-3d; }
+
+.step-tilt {
+  display: block;
+  width: 88px;
+  margin: 0 auto;
+}
+
+.step-num-wrap { transform-style: preserve-3d; }
+
+.step-ring {
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  border: 1px dashed var(--gb);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  animation: ringSpin 14s linear infinite;
+}
+
+.step-tilt:hover .step-ring { opacity: 1; }
+
+@keyframes ringSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE — laptop first, then tablet, then phone
+   ═══════════════════════════════════════════════════════════ */
+
+/* Small laptops / large tablets: three columns get too narrow to read. */
+@media (max-width: 1100px) {
+  .section { padding: 84px 32px; }
+
+  .features-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cube-section {
+    padding: 84px 32px;
+    gap: 36px;
+    grid-template-columns: 1fr minmax(220px, 340px);
+  }
+}
+
+@media (max-width: 900px) {
+  .cube-section {
+    --cube-size: 170px;
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 44px;
+  }
+
+  .cube-copy .section-label,
+  .cube-title,
+  .cube-sub {
+    text-align: center;
+  }
+
+  .cube-sub { margin: 0 auto; }
+}
+
 @media (max-width: 768px) {
   .how-steps,
-  .features-grid,
-  .testi-grid {
+  .features-grid {
     grid-template-columns: 1fr;
   }
-  
-  .how-steps::before {
+
+  .how-steps::before { display: none; }
+
+  .section { padding: 60px 24px; }
+
+  .hero { padding: 96px 16px 48px; }
+
+  .hero .hero-subtitle { margin-bottom: 32px; }
+
+  .hero-chat-stage { margin-bottom: 36px; }
+
+  .cta-form { flex-direction: column; }
+
+  .cta-section,
+  .cube-section { padding: 64px 24px; }
+
+  /* The 3D room is switched off on small screens; these keep some life in the bg. */
+  .hero-bg-emoji { font-size: 26px; }
+}
+
+@media (max-width: 520px) {
+  .hero h1 { letter-spacing: -0.5px; }
+
+  .hc-messages {
+    padding: 16px;
+    min-height: 180px;
+    max-height: 46vh;
+  }
+
+  .hc-bubble { font-size: 13px; }
+
+  .hc-recipe-chip { width: 100%; }
+
+  .hc-suggestions,
+  .hc-input-row { padding: 10px 12px; }
+
+  .hero-proof { gap: 14px; }
+
+  .proof-sep { display: none; }
+
+  .testi-card { padding: 22px; }
+
+  .cube-fallback { grid-template-columns: 1fr; }
+}
+
+/* Touch devices: hover-only affordances never resolve, and the big blurs are
+   the most expensive thing on screen. */
+@media (hover: none) {
+  .hero-tile { backdrop-filter: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MOTION PREFERENCES
+   ═══════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .hero-bg-emoji,
+  .hero-glow,
+  .step-ring,
+  .cube-shadow {
+    animation: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE INPUT SIZING
+   iOS Safari zooms the whole viewport when a focused field is
+   under 16px. Several of ours were 13.5–15px, which made every
+   form on a phone jump. Bump them only where it matters.
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 767px) {
+  .hc-input,
+  .modal-input,
+  .cta-email,
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SMOOTHNESS / RENDERING
+   ═══════════════════════════════════════════════════════════ */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Momentum scrolling without rubber-banding the page behind panels */
+.hc-messages,
+.hc-suggestions {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Visible focus for keyboard users; pointer clicks keep the clean look. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--gl);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Comfortable tap targets on the landing page's small controls */
+@media (hover: none) {
+  .hc-sug,
+  .hc-recipe-chip,
+  .modal-close-btn {
+    min-height: 40px;
+  }
+
+  .hc-send {
+    width: 42px;
+    height: 42px;
+  }
+}
+
+.hc-recipe-chip,
+.hc-sug,
+.hc-send,
+.cta-btn,
+.modal-submit {
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+              background-color 0.18s ease,
+              border-color 0.18s ease,
+              color 0.18s ease,
+              box-shadow 0.18s ease;
+}
+
+.hc-sug:active,
+.hc-recipe-chip:active,
+.cta-btn:active,
+.modal-submit:active {
+  transform: scale(0.97);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HERO CALL TO ACTION
+   The hero previously had no primary action at all.
+   ═══════════════════════════════════════════════════════════ */
+.hero-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 40px;
+}
+
+.hero-cta-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--g);
+  color: #fff;
+  border-radius: 14px;
+  padding: 15px 26px;
+  font-size: 15px;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 14px 30px -12px rgba(27, 94, 32, 0.6);
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s, box-shadow 0.2s;
+}
+
+.hero-cta-primary:hover {
+  background: #14521a;
+  transform: translateY(-2px);
+  box-shadow: 0 20px 38px -14px rgba(27, 94, 32, 0.7);
+}
+
+.hero-cta-primary:active { transform: translateY(0) scale(0.985); }
+
+.hero-cta-ghost {
+  display: inline-flex;
+  align-items: center;
+  border: 1.5px solid var(--gb);
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--g);
+  border-radius: 14px;
+  padding: 14px 24px;
+  font-size: 15px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: background-color 0.2s, border-color 0.2s, transform 0.2s;
+}
+
+.hero-cta-ghost:hover {
+  background: var(--gp);
+  border-color: var(--g);
+  transform: translateY(-2px);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PRICING
+   ═══════════════════════════════════════════════════════════ */
+.pricing-section { background: var(--cream); }
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  max-width: 1060px;
+  margin: 0 auto;
+  align-items: stretch;
+}
+
+.price-tilt,
+.price-tilt .tilt-inner { height: 100%; border-radius: 22px; }
+
+.price-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 30px 26px;
+  text-align: left;
+}
+
+.price-card-featured {
+  border-color: var(--g);
+  box-shadow: 0 24px 50px -24px rgba(27, 94, 32, 0.45);
+}
+
+.price-badge {
+  position: absolute;
+  top: -11px;
+  left: 26px;
+  background: var(--g);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 5px 12px;
+  border-radius: 20px;
+}
+
+.price-name {
+  font-size: 17px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.price-blurb {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+  min-height: 40px;
+}
+
+.price-amount {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 20px 0 18px;
+}
+
+.price-value {
+  font-family: Georgia, serif;
+  font-size: 40px;
+  font-weight: 900;
+  letter-spacing: -1px;
+  color: var(--text);
+}
+
+.price-cadence {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.price-cta {
+  display: block;
+  text-align: center;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+  text-decoration: none;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.price-cta:hover { border-color: var(--g); color: var(--g); background: var(--gp); }
+
+.price-cta-featured {
+  background: var(--g);
+  border-color: var(--g);
+  color: #fff;
+}
+
+.price-cta-featured:hover { background: #14521a; border-color: #14521a; color: #fff; }
+
+.price-features {
+  list-style: none;
+  padding: 22px 0 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.price-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.price-check {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--g);
+}
+
+.pricing-note {
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-top: 32px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FAQ
+   ═══════════════════════════════════════════════════════════ */
+.faq-list {
+  max-width: 740px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.faq-item {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--white);
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+
+.faq-item-open {
+  border-color: var(--gb);
+  box-shadow: 0 10px 30px -18px rgba(27, 94, 32, 0.35);
+}
+
+.faq-q-wrap { margin: 0; }
+
+.faq-q {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: none;
+  border: none;
+  padding: 19px 22px;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.faq-icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--gp);
+  color: var(--g);
+  transition: background-color 0.2s;
+}
+
+.faq-q:hover .faq-icon { background: var(--gb); }
+
+.faq-a {
+  padding: 0 22px 20px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE — new sections
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 1100px) {
+  .pricing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 768px) {
+  .pricing-grid { grid-template-columns: 1fr; max-width: 420px; }
+
+  .hero-cta { width: 100%; gap: 10px; margin-bottom: 32px; }
+
+  .hero-cta-primary,
+  .hero-cta-ghost {
+    flex: 1 1 100%;
+    justify-content: center;
+    padding: 15px 20px;
+  }
+
+  .price-card { padding: 26px 22px; }
+
+  .faq-q { font-size: 14.5px; padding: 17px 18px; }
+  .faq-a { padding: 0 18px 18px; font-size: 13.5px; }
+}
+
+/* Line icons replacing the emoji that used to stand in for interface icons. */
+.cube-face-icon {
+  width: 42px;
+  height: 42px;
+  color: var(--g);
+}
+
+.cube-fallback-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.step-icon {
+  width: 36px;
+  height: 36px;
+  color: var(--g);
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   PRINT
+   Rather than stripping the app's chrome rule by rule, the cook
+   page renders a dedicated .print-sheet that only exists on
+   paper. The visibility trick hides everything else without
+   needing a selector for each panel.
+   ═══════════════════════════════════════════════════════════ */
+.print-sheet {
+  display: none;
+}
+
+@page {
+  margin: 16mm;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff;
+    height: auto;
+    overflow: visible;
+  }
+
+  /* Out of flow entirely, so the sheet starts at the true page edge. */
+  aside {
     display: none;
   }
-  
-  .section {
-    padding: 60px 24px;
+
+  body * {
+    visibility: hidden;
   }
-  
-  .hero {
-    padding: 100px 16px 40px;
+
+  .print-sheet,
+  .print-sheet * {
+    visibility: visible;
   }
-  
-  .logos-strip {
-    padding: 20px 24px;
+
+  .print-sheet {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    color: #000;
+    font-family: Georgia, serif;
   }
-  
-  .logos-list {
-    gap: 20px;
+
+  .print-title {
+    font-size: 26pt;
+    font-weight: 700;
+    margin: 0 0 4pt;
   }
-  
-  .cta-form {
-    flex-direction: column;
+
+  .print-meta {
+    font-size: 10pt;
+    color: #444;
+    margin: 0 0 18pt;
+    padding-bottom: 10pt;
+    border-bottom: 1px solid #bbb;
+  }
+
+  .print-h {
+    font-size: 11pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 0 0 8pt;
+  }
+
+  .print-cols {
+    display: grid;
+    grid-template-columns: 1fr 1.9fr;
+    gap: 26pt;
+    align-items: start;
+  }
+
+  .print-ingredients {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 11pt;
+    line-height: 1.75;
+  }
+
+  .print-ingredients li {
+    break-inside: avoid;
+    padding-left: 12pt;
+    text-indent: -12pt;
+  }
+
+  .print-ingredients li::before {
+    content: "□  ";
+    color: #666;
+  }
+
+  .print-steps {
+    margin: 0;
+    padding-left: 16pt;
+    font-size: 11pt;
+    line-height: 1.75;
+  }
+
+  .print-steps li {
+    break-inside: avoid;
+    margin-bottom: 9pt;
+    padding-left: 4pt;
+  }
+
+  .print-step-time {
+    display: inline-block;
+    margin-left: 6pt;
+    font-size: 9pt;
+    font-weight: 700;
+    color: #555;
+  }
+
+  .print-foot {
+    margin-top: 22pt;
+    padding-top: 8pt;
+    border-top: 1px solid #ddd;
+    font-size: 8.5pt;
+    color: #777;
   }
 }

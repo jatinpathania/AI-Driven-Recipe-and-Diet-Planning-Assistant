@@ -1,5 +1,5 @@
 import "./globals.css"
-import { Inter } from "next/font/google"
+import { Inter, Plus_Jakarta_Sans } from "next/font/google"
 import Providers from "./providers"
 
 const inter = Inter({
@@ -7,6 +7,15 @@ const inter = Inter({
     display: "swap",
     fallback: ["system-ui", "arial"],
     variable: "--font-inter",
+})
+
+// Kitchen UI face. Self-hosted by next/font instead of a render-blocking
+// Google Fonts @import injected at runtime.
+const jakarta = Plus_Jakarta_Sans({
+    subsets: ["latin"],
+    display: "swap",
+    weight: ["400", "500", "600", "700", "800"],
+    variable: "--font-jakarta",
 })
 
 export const metadata = {
@@ -42,7 +51,7 @@ export default function RootLayout({ children }) {
                     })();
                 `}} />
             </head>
-            <body className={inter.className}>
+            <body className={`${inter.className} ${inter.variable} ${jakarta.variable}`}>
                 <Providers>{children}</Providers>
             </body>
         </html>

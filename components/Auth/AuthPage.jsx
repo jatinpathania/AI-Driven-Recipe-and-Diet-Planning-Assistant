@@ -6,10 +6,18 @@ import { Eye, EyeOff, X, Mail, Lock, Sparkles } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import { useSession, signIn, signOut } from "next-auth/react"
-import { loginUser, signupUser, saveUserData, scheduleAutoLogout } from "@/utils/api"
+import { loginUser, signupUser, saveUserData, scheduleAutoLogout, getTokenExpiryMs, clearAuthStorage } from "@/utils/api"
 
 const INPUT_BASE =
-    "w-full h-14 rounded-xl text-[15px] text-white placeholder:text-white/30 bg-white/[0.03] outline-none transition-all duration-300 border border-white/10 focus:border-white/30 focus:bg-white/[0.08] focus:ring-4 focus:ring-white/5 hover:bg-white/[0.05]"
+    "w-full h-14 rounded-xl text-base sm:text-[15px] text-white placeholder:text-white/30 bg-white/[0.03] outline-none transition-all duration-300 border border-white/10 focus:border-white/30 focus:bg-white/[0.08] focus:ring-4 focus:ring-white/5 hover:bg-white/[0.05]"
+
+const AUTH_COINS = [
+    { e: "🥦", top: "12%", left: "8%", size: 44 },
+    { e: "🍋", top: "70%", left: "6%", size: 36 },
+    { e: "🥕", top: "18%", left: "86%", size: 40 },
+    { e: "🍅", top: "76%", left: "84%", size: 46 },
+    { e: "🥑", top: "44%", left: "92%", size: 30 },
+]
 
 export default function AuthPage({ initialTab = "signin" }) {
     const router = useRouter()
@@ -31,10 +39,24 @@ export default function AuthPage({ initialTab = "signin" }) {
 
     // Redirect if already logged in
     useEffect(() => {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
-        if (status === "authenticated" || token) {
-            router.push("/kitchen")
+        if (status === "loading") return
+
+        if (status === "authenticated") {
+            router.replace("/kitchen")
+            return
         }
+
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+        if (!token) return
+
+        const msLeft = getTokenExpiryMs(token)
+        if (msLeft !== null && msLeft <= 0) {
+            // Expired: drop it quietly so the user can just log in again.
+            clearAuthStorage()
+            return
+        }
+
+        router.replace("/kitchen")
     }, [status, router])
 
     useEffect(() => {
@@ -106,20 +128,44 @@ export default function AuthPage({ initialTab = "signin" }) {
 
     return (
         <div
-            className="min-h-screen flex items-center justify-center p-4 md:p-8 relative overflow-hidden"
+            className="min-h-screen min-h-[100svh] flex items-center justify-center p-4 md:p-8 relative overflow-hidden"
             style={{
                 background: "radial-gradient(ellipse at 50% 0%, #1a4d2e 0%, #0d2715 45%, #051108 100%)",
             }}
         >
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
                 <div className="absolute top-[-10%] left-[20%] w-[420px] h-[420px] rounded-full blur-[120px] opacity-25 bg-green-500/20" />
                 <div className="absolute bottom-[-10%] right-[20%] w-[420px] h-[420px] rounded-full blur-[120px] opacity-20 bg-emerald-500/20" />
+                {/* receding grid floor + spinning ingredient coins, same as the landing hero */}
+                <div
+                    className="absolute inset-x-[-20%] bottom-[-8%] h-[45%] opacity-40"
+                    style={{
+                        backgroundImage: "linear-gradient(rgba(52,211,153,0.18) 1px, transparent 1px), linear-gradient(90deg, rgba(52,211,153,0.18) 1px, transparent 1px)",
+                        backgroundSize: "56px 56px",
+                        transform: "perspective(600px) rotateX(62deg)",
+                        transformOrigin: "center top",
+                        maskImage: "linear-gradient(to bottom, transparent, black 35%, transparent)",
+                        WebkitMaskImage: "linear-gradient(to bottom, transparent, black 35%, transparent)",
+                    }}
+                />
+                {AUTH_COINS.map((c, i) => (
+                    <motion.span
+                        key={c.e}
+                        className="absolute select-none"
+                        style={{ top: c.top, left: c.left, fontSize: c.size, opacity: 0.16 }}
+                        animate={{ rotateY: [0, 360], y: [0, -14, 0] }}
+                        transition={{ duration: 7 + i, repeat: Infinity, ease: "easeInOut", delay: i * 0.6 }}
+                    >
+                        {c.e}
+                    </motion.span>
+                ))}
             </div>
 
             <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, ease: "easeOut" }}
+                initial={{ opacity: 0, y: 36, rotateX: 16, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, rotateX: 0, scale: 1 }}
+                transition={{ type: "spring", stiffness: 180, damping: 22 }}
+                style={{ transformPerspective: 1200 }}
                 className="relative z-10 w-full max-w-[560px]"
             >
                 <div
@@ -189,13 +235,14 @@ export default function AuthPage({ initialTab = "signin" }) {
                                     exit={{ opacity: 0, x: 16 }}
                                     transition={{ duration: 0.25 }}
                                 >
-                                    <h2 className="text-[36px] leading-tight font-bold text-white mt-3 mb-7">Create an account</h2>
+                                    <h2 className="text-[28px] sm:text-[36px] leading-tight font-bold text-white mt-3 mb-6 sm:mb-7">Create an account</h2>
 
                                     <form onSubmit={handleSignUp} className="space-y-4">
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             <input
                                                 type="text"
                                                 placeholder="Username"
+                                                autoComplete="username"
                                                 value={signUpForm.username}
                                                 onChange={(e) => setSignUpForm({ ...signUpForm, username: e.target.value })}
                                                 className={`${INPUT_BASE} px-5`}
@@ -205,6 +252,7 @@ export default function AuthPage({ initialTab = "signin" }) {
                                             <input
                                                 type="text"
                                                 placeholder="Full name"
+                                                autoComplete="name"
                                                 value={signUpForm.fullName}
                                                 onChange={(e) => setSignUpForm({ ...signUpForm, fullName: e.target.value })}
                                                 className={`${INPUT_BASE} px-5`}
@@ -218,6 +266,7 @@ export default function AuthPage({ initialTab = "signin" }) {
                                             <input
                                                 type="email"
                                                 placeholder="Enter your email"
+                                                autoComplete="email"
                                                 value={signUpForm.email}
                                                 onChange={(e) => setSignUpForm({ ...signUpForm, email: e.target.value })}
                                                 className={`${INPUT_BASE} pl-12 pr-5`}
@@ -231,6 +280,7 @@ export default function AuthPage({ initialTab = "signin" }) {
                                             <input
                                                 type={showPassword ? "text" : "password"}
                                                 placeholder="Password (min 6 characters)"
+                                                autoComplete="new-password"
                                                 value={signUpForm.password}
                                                 onChange={(e) => setSignUpForm({ ...signUpForm, password: e.target.value })}
                                                 className={`${INPUT_BASE} pl-12 pr-12`}
@@ -273,7 +323,7 @@ export default function AuthPage({ initialTab = "signin" }) {
                                     exit={{ opacity: 0, x: -16 }}
                                     transition={{ duration: 0.25 }}
                                 >
-                                    <h2 className="text-[36px] leading-tight font-bold text-white mt-3 mb-7">Welcome back</h2>
+                                    <h2 className="text-[28px] sm:text-[36px] leading-tight font-bold text-white mt-3 mb-6 sm:mb-7">Welcome back</h2>
 
                                     <form onSubmit={handleSignIn} className="space-y-4">
                                         <div className="relative flex items-center">
@@ -281,6 +331,7 @@ export default function AuthPage({ initialTab = "signin" }) {
                                             <input
                                                 type="text"
                                                 placeholder="Email or username"
+                                                autoComplete="username"
                                                 value={signInForm.email}
                                                 onChange={(e) => setSignInForm({ ...signInForm, email: e.target.value })}
                                                 className={`${INPUT_BASE} pl-12 pr-5`}
@@ -294,6 +345,7 @@ export default function AuthPage({ initialTab = "signin" }) {
                                             <input
                                                 type={showPassword ? "text" : "password"}
                                                 placeholder="Password"
+                                                autoComplete="current-password"
                                                 value={signInForm.password}
                                                 onChange={(e) => setSignInForm({ ...signInForm, password: e.target.value })}
                                                 className={`${INPUT_BASE} pl-12 pr-12`}

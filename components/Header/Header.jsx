@@ -8,29 +8,51 @@ import { useSession, signOut } from "next-auth/react"
 import { ChevronDown, Sparkles } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { clearUserData, getUserData, isAuthenticated, scheduleAutoLogout } from "@/utils/api"
+import { markSigningOut } from "@/context/GuestUserContext"
 import ConfirmDialog from "@/components/ui/ConfirmDialog"
+
+const LOGO_WORDS = ["AI", "Chef", "Guide", "Expert"]
+
+/**
+ * The cycling word after "Flavour." — its own component so the 3-second tick
+ * re-renders a single span, not the whole header (auth state, dropdown, nav).
+ */
+function RotatingWord() {
+    const [index, setIndex] = useState(0)
+
+    useEffect(() => {
+        const interval = setInterval(() => setIndex((prev) => (prev + 1) % LOGO_WORDS.length), 3000)
+        return () => clearInterval(interval)
+    }, [])
+
+    return (
+        <span className="relative inline-block min-w-[56px]" style={{ perspective: 400 }}>
+            <AnimatePresence mode="wait">
+                <motion.span
+                    key={index}
+                    initial={{ opacity: 0, rotateX: -90, y: 8 }}
+                    animate={{ opacity: 1, rotateX: 0, y: 0 }}
+                    exit={{ opacity: 0, rotateX: 90, y: -8 }}
+                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                    className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600 inline-block origin-center"
+                >
+                    {LOGO_WORDS[index]}
+                </motion.span>
+            </AnimatePresence>
+        </span>
+    )
+}
 
 export default function Header({ overlay = false }) {
     const router = useRouter()
     const dropdownRef = useRef(null)
     const { data: session } = useSession()
 
-    const [logoWordIndex, setLogoWordIndex] = useState(0)
     const [isScrolled, setIsScrolled] = useState(false)
     const [loggedIn, setLoggedIn] = useState(false)
     const [username, setUsername] = useState("User")
     const [menuOpen, setMenuOpen] = useState(false)
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
-
-    const logoWords = ["AI", "Chef", "Guide", "Expert"]
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setLogoWordIndex((prev) => (prev + 1) % logoWords.length)
-        }, 3000)
-
-        return () => clearInterval(interval)
-    }, [logoWords.length])
 
     useEffect(() => {
         const syncAuth = () => {
@@ -76,7 +98,7 @@ export default function Header({ overlay = false }) {
         syncAuth()
         handleScroll()
 
-        window.addEventListener("scroll", handleScroll)
+        window.addEventListener("scroll", handleScroll, { passive: true })
         window.addEventListener("storage", syncAuth)
         window.addEventListener("focus", syncAuth)
         window.addEventListener("flavour:auth-changed", syncAuth)
@@ -97,6 +119,7 @@ export default function Header({ overlay = false }) {
 
     const confirmLogout = async () => {
         setShowLogoutConfirm(false)
+        markSigningOut()
         clearUserData()
         await signOut({ redirect: false })
         setMenuOpen(false)
@@ -111,7 +134,7 @@ export default function Header({ overlay = false }) {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
                 className={`${overlay ? "sticky top-0 z-50 -mb-[72px]" : "sticky top-0 z-50"} transition-all duration-300 ${isScrolled
-                        ? "bg-white/12 backdrop-blur-xl border-b border-white/25 shadow-[0_8px_32px_rgba(0,0,0,0.12)]"
+                        ? "bg-white/70 backdrop-blur-xl border-b border-emerald-900/10 shadow-[0_10px_40px_-18px_rgba(27,94,32,0.35)]"
                         : "bg-transparent border-b border-transparent"
                     }`}
             >
@@ -135,22 +158,28 @@ export default function Header({ overlay = false }) {
                         <div className="flex items-center">
                             <span className="text-lg sm:text-xl lg:text-2xl font-bold text-green-900">Flavour</span>
                             <span className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">.</span>
-                            <div className="relative min-w-[56px]">
-                                <AnimatePresence mode="wait">
-                                    <motion.span
-                                        key={logoWordIndex}
-                                        initial={{ opacity: 0, y: 14, scale: 0.9 }}
-                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, y: -14, scale: 0.9 }}
-                                        transition={{ duration: 0.35 }}
-                                        className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600 inline-block"
-                                    >
-                                        {logoWords[logoWordIndex]}
-                                    </motion.span>
-                                </AnimatePresence>
-                            </div>
+                            <RotatingWord />
                         </div>
                     </Link>
+
+                    {overlay && (
+                        <nav className="hidden md:flex items-center gap-1" aria-label="Sections">
+                            {[
+                                { href: '#how', label: 'How it works' },
+                                { href: '#features', label: 'Features' },
+                                { href: '#pricing', label: 'Pricing' },
+                                { href: '#faq', label: 'FAQ' },
+                            ].map((item) => (
+                                <a
+                                    key={item.href}
+                                    href={item.href}
+                                    className="px-3 py-2 rounded-full text-sm font-semibold text-green-900/70 hover:text-green-900 hover:bg-white/30 transition-colors"
+                                >
+                                    {item.label}
+                                </a>
+                            ))}
+                        </nav>
+                    )}
 
                     {!loggedIn ? (
                         <Link

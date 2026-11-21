@@ -1,0 +1,758 @@
+/* ═══════════════════════════════════════════════════════════
+   LANDING — 3D layer
+   Loaded only by the landing page (components/Home/NewHome).
+   Every selector is a landing class, so nothing here reaches
+   the kitchen. Palette stays on the existing emerald tokens
+   (--g, --gl, --gp, --gb, --accent).
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Hero: parallax room ──────────────────────────────────── */
+.hero-scene {
+  position: absolute;
+  inset: 0;
+  perspective: 1100px;
+  perspective-origin: 50% 42%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero-scene-stage {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.hero-tile {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  border-radius: 26%;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.95), rgba(232, 245, 233, 0.62));
+  border: 1px solid var(--gb);
+  box-shadow:
+    0 26px 44px -22px rgba(27, 94, 32, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -6px 14px rgba(39, 174, 96, 0.08);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+/* Two orbit rings lying on a tilted plane around the chat card. */
+.hero-orbit {
+  position: absolute;
+  left: 50%;
+  top: 66%;
+  border-radius: 50%;
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+
+.hero-orbit-a {
+  width: 1100px;
+  height: 1100px;
+  margin: -550px 0 0 -550px;
+  border: 1px dashed rgba(39, 174, 96, 0.3);
+  animation: heroOrbit 60s linear infinite;
+}
+
+.hero-orbit-b {
+  width: 780px;
+  height: 780px;
+  margin: -390px 0 0 -390px;
+  border: 1.5px solid rgba(16, 185, 129, 0.16);
+  animation: heroOrbit 38s linear infinite reverse;
+}
+
+/* A bright bead riding each ring sells the rotation. */
+.hero-orbit::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -7px;
+  width: 14px;
+  height: 14px;
+  margin-top: -7px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #b5f542, #27ae60 70%);
+  box-shadow: 0 0 18px 4px rgba(39, 174, 96, 0.45);
+}
+
+@keyframes heroOrbit {
+  from { transform: rotateX(76deg) rotateZ(0deg); }
+  to   { transform: rotateX(76deg) rotateZ(360deg); }
+}
+
+/* Receding grid floor under the hero. */
+.hero-grid-floor {
+  position: absolute;
+  left: -20%;
+  right: -20%;
+  bottom: -6%;
+  height: 46%;
+  background-image:
+    linear-gradient(rgba(39, 174, 96, 0.22) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(39, 174, 96, 0.22) 1px, transparent 1px);
+  background-size: 64px 64px;
+  transform: perspective(700px) rotateX(64deg);
+  transform-origin: center top;
+  mask-image: linear-gradient(to bottom, transparent, black 30%, black 60%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 30%, black 60%, transparent);
+  animation: gridTravel 6s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes gridTravel {
+  to { background-position: 0 64px, 0 0; }
+}
+
+/* Readable content sits above the 3D background layers. */
+.hero > .hero-scene,
+.hero > .hero-grid-floor { z-index: 0; }
+
+/* ── Hero headline: words flip up out of the page ─────────── */
+.hero .hero-title { margin-bottom: 18px; }
+
+.hero-line {
+  display: block;
+  perspective: 700px;
+}
+
+.hero-word {
+  display: inline-block;
+  margin: 0 0.12em;
+  transform-origin: 50% 100%;
+  backface-visibility: hidden;
+}
+
+.hero .hero-subtitle { margin-bottom: 34px; }
+
+/* ── Hero chat additions ──────────────────────────────────── */
+.hero-chat { position: relative; }
+
+.hc-header-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hc-quota {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(10, 52, 24, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.hc-quota-pips { display: inline-flex; gap: 3px; }
+
+.hc-quota-pips span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transition: background-color 0.3s;
+}
+
+.hc-quota-pips span.on {
+  background: var(--accent);
+  box-shadow: 0 0 6px rgba(181, 245, 66, 0.8);
+}
+
+.hc-quota-out {
+  cursor: pointer;
+  background: #fff;
+  color: var(--g);
+  border-color: #fff;
+}
+
+.hc-quota-out:hover { background: var(--gp); }
+
+.hc-messages { perspective: 900px; }
+
+.hc-msg-body { min-width: 0; }
+
+.hc-bubble > * + * { margin-top: 6px; }
+
+.hc-recipe-chip {
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+.hc-chip-meta {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+
+.hc-sug { font-family: inherit; }
+
+.hc-sug:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.hc-send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.hc-recipe-card {
+  background: var(--white);
+  border: 1px solid var(--gb);
+  border-radius: 4px 18px 18px 18px;
+  padding: 14px;
+  box-shadow: 0 14px 30px -20px rgba(27, 94, 32, 0.55);
+  min-width: 240px;
+}
+
+.hc-recipe-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hc-recipe-emoji {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  border-radius: 12px;
+  background: var(--gp);
+  border: 1px solid var(--gb);
+}
+
+.hc-recipe-name {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.hc-recipe-sub {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.hc-recipe-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.hc-recipe-stats span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: var(--gp);
+  color: var(--g);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.hc-cook-btn {
+  margin-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 14px;
+  background: var(--g);
+  color: #fff;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 20px -12px rgba(27, 94, 32, 0.8);
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.18s;
+}
+
+.hc-cook-btn:hover {
+  background: #14521a;
+  transform: translateY(-1px);
+}
+
+.hc-cook-btn:active { transform: scale(0.97); }
+
+.hc-notice-btn { margin-top: 8px; }
+
+/* ── Ingredient conveyor ──────────────────────────────────── */
+.marquee {
+  position: relative;
+  overflow: hidden;
+  padding: 40px 0;
+  background: linear-gradient(180deg, var(--cream), #fff);
+  border-block: 1px solid var(--border);
+  perspective: 900px;
+}
+
+.marquee-plane {
+  display: grid;
+  gap: 14px;
+  transform: rotateX(26deg) rotateZ(-3deg) scale(1.08);
+  transform-style: preserve-3d;
+}
+
+.marquee-row {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marqueeSlide 40s linear infinite;
+}
+
+.marquee-row-reverse .marquee-track {
+  animation-duration: 46s;
+  animation-direction: reverse;
+}
+
+.marquee:hover .marquee-track { animation-play-state: paused; }
+
+/* Margin, not gap: the track must be exactly two identical halves for the loop to be seamless. */
+.marquee-chip {
+  flex-shrink: 0;
+  margin-right: 12px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--gb);
+  color: var(--g);
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: 0 12px 22px -16px rgba(27, 94, 32, 0.6);
+}
+
+.marquee-row-reverse .marquee-chip { background: var(--gp); }
+
+@keyframes marqueeSlide {
+  to { transform: translateX(-50%); }
+}
+
+/* ── Section heads ────────────────────────────────────────── */
+.section-head {
+  text-align: center;
+  margin-bottom: 56px;
+  transform-style: preserve-3d;
+}
+
+.section-head .section-title { margin-bottom: 0; }
+
+.reveal-3d { will-change: transform, opacity; }
+
+/* ── Draggable cube ───────────────────────────────────────── */
+.cube-stage {
+  display: grid;
+  place-items: center;
+  gap: 62px;
+}
+
+.cube-scene {
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.cube-scene.is-grabbing { cursor: grabbing; }
+
+.cube-face {
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.95), transparent 55%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(212, 240, 222, 0.92));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7), inset 0 -20px 40px rgba(27, 94, 32, 0.1);
+}
+
+.cube-shadow { animation-duration: 6s; }
+
+.cube-hint {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.cube-copy .section-title { margin-bottom: 0; }
+
+/* ── How it works ─────────────────────────────────────────── */
+.how-step p { font-weight: 600; }
+
+/* ── Feature flip cards ───────────────────────────────────── */
+.flip-note {
+  margin: -36px 0 32px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.features-grid { perspective: 1400px; }
+
+.flip-wrap { height: 220px; }
+
+.flip-card {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  perspective: 1000px;
+  border-radius: 22px;
+}
+
+.flip-card:focus-visible {
+  outline: 2px solid var(--gl);
+  outline-offset: 4px;
+}
+
+.flip-inner {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 22px;
+  transform-style: preserve-3d;
+  transition: transform 0.85s cubic-bezier(0.2, 0.85, 0.25, 1.15);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .flip-card:hover .flip-inner { transform: rotateY(180deg); }
+}
+
+.flip-card.is-flipped .flip-inner,
+.flip-card:focus-visible .flip-inner {
+  transform: rotateY(180deg);
+}
+
+.flip-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 26px;
+  border-radius: 22px;
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.flip-front {
+  background: var(--white);
+  border: 1px solid var(--border);
+  box-shadow: 0 22px 44px -30px rgba(27, 94, 32, 0.45);
+}
+
+.flip-front::after {
+  content: '';
+  position: absolute;
+  right: -40px;
+  bottom: -40px;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(39, 174, 96, 0.16), transparent 70%);
+  pointer-events: none;
+}
+
+.flip-icon {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: linear-gradient(145deg, var(--gp), #fff);
+  border: 1px solid var(--gb);
+  color: var(--g);
+  box-shadow: 0 12px 24px -14px rgba(27, 94, 32, 0.55);
+}
+
+.flip-icon svg { width: 26px; height: 26px; }
+
+.flip-title {
+  margin-top: auto;
+  font-family: Georgia, serif;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.3px;
+  color: var(--text);
+}
+
+.flip-tag {
+  align-self: flex-start;
+  margin-top: 8px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--gp);
+  border: 1px solid var(--gb);
+  color: var(--g);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.flip-turn {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--gb);
+  transition: transform 0.5s, color 0.3s;
+}
+
+.flip-card:hover .flip-turn { transform: rotate(180deg); color: var(--g); }
+
+.flip-back {
+  transform: rotateY(180deg);
+  justify-content: center;
+  gap: 14px;
+  color: #fff;
+  background:
+    radial-gradient(circle at 85% 15%, rgba(181, 245, 66, 0.22), transparent 45%),
+    linear-gradient(150deg, var(--g), #0d4a22);
+  box-shadow: 0 26px 50px -26px rgba(13, 74, 34, 0.8);
+}
+
+.flip-back-icon { width: 30px; height: 30px; color: var(--accent); }
+
+.flip-back-text {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+/* ── Testimonial ring ─────────────────────────────────────── */
+.testimonials-section { overflow: hidden; }
+
+.ring-wrap { position: relative; }
+
+.ring-scene {
+  position: relative;
+  height: 320px;
+  perspective: 1400px;
+  perspective-origin: 50% 25%;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.ring-scene:active { cursor: grabbing; }
+
+/* Not ".ring": that is a Tailwind utility (1px box-shadow outline). */
+.testi-ring {
+  position: absolute;
+  left: 50%;
+  top: 30px;
+  width: 260px;
+  height: 230px;
+  margin-left: -130px;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.ring-card {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* The bordered card inside can be painted on its own layer; hide its back too,
+   or cards facing away show up as wireframe outlines in the middle of the ring. */
+.ring-card * {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* The default italic accent is dark green, unreadable on this dark band. */
+.testimonials-section .section-title em { color: #6ee7b7; }
+
+.ring-floor {
+  position: absolute;
+  left: 50%;
+  bottom: -20px;
+  width: 760px;
+  height: 120px;
+  margin-left: -380px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(16, 185, 129, 0.28), transparent 70%);
+  filter: blur(12px);
+  pointer-events: none;
+}
+
+.testimonials-section .testi-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 24px;
+  border-radius: 22px;
+  background: linear-gradient(160deg, rgba(36, 72, 47, 0.96), rgba(17, 38, 24, 0.96));
+  border: 1px solid rgba(110, 231, 183, 0.18);
+  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.7);
+}
+
+.testimonials-section .testi-card:hover { transform: none; }
+
+.testimonials-section .testi-text {
+  flex: 1;
+  margin: 0 0 16px;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.testi-name,
+.testi-role { display: block; }
+
+.testi-av { background: rgba(255, 255, 255, 0.08); }
+
+.ring-fallback {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 4px 24px 18px;
+  margin: 0 -24px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ring-fallback::-webkit-scrollbar { display: none; }
+
+.ring-fallback-item {
+  flex: 0 0 min(82%, 300px);
+  scroll-snap-align: center;
+}
+
+/* ── Pricing / FAQ depth ──────────────────────────────────── */
+.pricing-grid,
+.faq-list { perspective: 1200px; }
+
+.price-blurb { min-height: 0; }
+
+/* ── CTA: spinning ingredient coins ───────────────────────── */
+.cta-section { perspective: 1000px; }
+
+.cta-section h2 em {
+  font-style: italic;
+  color: var(--accent);
+}
+
+.cta-section .cta-form { margin-top: 32px; }
+
+/* Content above the decorative coins. */
+.cta-section > *:not(.cta-orbit) {
+  position: relative;
+  z-index: 1;
+}
+
+.cta-section .cta-note {
+  margin: 0;
+  font-size: 12.5px;
+}
+
+.cta-orbit {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cta-orbit span {
+  position: absolute;
+  font-size: 46px;
+  opacity: 0.22;
+  animation: ctaCoin 7s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -1.15s);
+}
+
+.cta-orbit span:nth-child(1) { top: 14%; left: 8%; }
+.cta-orbit span:nth-child(2) { top: 62%; left: 14%; }
+.cta-orbit span:nth-child(3) { top: 22%; left: 28%; font-size: 30px; }
+.cta-orbit span:nth-child(4) { top: 16%; right: 10%; }
+.cta-orbit span:nth-child(5) { top: 64%; right: 16%; }
+.cta-orbit span:nth-child(6) { top: 30%; right: 30%; font-size: 30px; }
+
+@keyframes ctaCoin {
+  0%   { transform: translateY(0) rotateY(0deg); }
+  50%  { transform: translateY(-16px) rotateY(180deg); }
+  100% { transform: translateY(0) rotateY(360deg); }
+}
+
+/* ── Footer ───────────────────────────────────────────────── */
+.landing-footer {
+  border-top: 1px solid #dce8df;
+  background: linear-gradient(180deg, #f8fcf8, #eaf6ec);
+}
+
+.footer-emoji {
+  display: inline-block;
+  animation: footerHop 2.8s ease-in-out infinite;
+}
+
+@keyframes footerHop {
+  0%, 70%, 100% { transform: translateY(0) rotateY(0deg); }
+  80%           { transform: translateY(-6px) rotateY(180deg); }
+  90%           { transform: translateY(0) rotateY(360deg); }
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .flip-wrap { height: 190px; }
+  .flip-note { margin-top: -28px; }
+  .section-head { margin-bottom: 40px; }
+  .marquee { padding: 28px 0; }
+  .marquee-chip { font-size: 13px; padding: 8px 14px; }
+  .cta-orbit span { font-size: 32px; }
+  .hero-grid-floor { height: 34%; }
+}
+
+/* ── Motion preferences ───────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .hero-orbit,
+  .hero-grid-floor,
+  .marquee-track,
+  .cta-orbit span,
+  .footer-emoji {
+    animation: none;
+  }
+
+  .flip-inner { transition: none; }
+}
