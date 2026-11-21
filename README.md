@@ -60,6 +60,7 @@ This app is especially helpful for:
 ### **AI & Third-Party APIs**
 - **AI Model:** Google Gemini (`gemini-3.5-flash-lite` by default, override with `GEMINI_MODEL`) via the Gemini API (uses `GEMINI_API_KEY`)
 - **Cooking-only scope:** the assistant answers only food and cooking questions; anything else gets a fixed refusal ([lib/ai/kitchen.js](lib/ai/kitchen.js))
+- **RAG knowledge base:** chat and ingredient-to-recipe answers are grounded in curated recipes and kitchen facts from [data/knowledge/](data/knowledge/), embedded with `gemini-embedding-001` and searched with MongoDB Atlas Vector Search ([lib/ai/retrieve.js](lib/ai/retrieve.js)). It never searches users' saved recipes.
 - **Calorie Estimation:** Integrated calorie calculation algorithms
 
 ### **Development & Tools**
@@ -134,6 +135,18 @@ CLOUD_API_KEY=your_cloudinary_api_key
 CLOUD_API_SECRET=your_cloudinary_api_secret
 NEXT_PUBLIC_API_URL=http://localhost:3000/api
 ```
+
+### AI knowledge base (RAG)
+```bash
+# Embed data/knowledge/*.json into MongoDB and create the vector index.
+# Re-run after editing the files; unchanged entries are skipped.
+npm run knowledge:build
+
+# Add your own file ({ "kind": "recipe" | "tip", "items": [...] }) or drop removed entries
+npm run knowledge:build -- path/to/more-recipes.json
+npm run knowledge:build -- --prune
+```
+Without the knowledge base the chat still works, just without grounding. Embeddings use the same `GEMINI_API_KEY` and have their own free-tier quota, separate from chat.
 
 ---
 

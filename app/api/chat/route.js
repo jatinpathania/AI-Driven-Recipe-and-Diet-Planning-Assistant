@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { generateRecipeSuggestions, estimateCalories, planDay } from '@/lib/ai/kitchen'
+import { buildSearchQuery, retrieveReferences } from '@/lib/ai/retrieve'
 import {
     GUEST_PROMPT_LIMIT,
     isSignedInRequest,
@@ -20,7 +21,12 @@ import {
  * The route used to connect to Mongo and attach the three newest recipes in
  * the whole database — anyone's — whenever a message contained "recipe" or
  * "cook". Those cards had nothing to do with the answer and leaked other
- * users' recipe names, so they are gone, and with them the DB round-trip.
+ * users' recipe names, so they are gone. Chat answers are now grounded in
+ * the public KnowledgeDoc collection instead (lib/ai/retrieve.js), which
+ * holds curated content only, never users' recipes.
+ *
+ * The assistant only answers food and cooking questions; anything else
+ * comes back as { success: true, offTopic: true, message: <refusal> }.
  */
 
 const sanitizePrefs = (p) => {
@@ -71,7 +77,10 @@ export async function POST(request) {
         } else if (mode === 'plan') {
             result = await planDay(message, prefs)
         } else {
-            result = await generateRecipeSuggestions(message, body.history, prefs)
+            // RAG: ground the answer in the public knowledge base. Fails open,
+            // so a slow or empty search just means an answer without notes.
+            const references = await retrieveReferences(buildSearchQuery(message, body.history), prefs)
+            result = await generateRecipeSuggestions(message, body.history, prefs, { references })
         }
     } catch (error) {
         console.error('Chat route error:', error)

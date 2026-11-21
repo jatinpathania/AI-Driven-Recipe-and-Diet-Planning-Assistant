@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import connectDB from '@/lib/db/connectDB'
 import Recipe from '@/lib/models/Recipe'
 import { parseIngredientsToRecipe } from '@/lib/ai/kitchen'
+import { retrieveReferences } from '@/lib/ai/retrieve'
 import { verifyAuth } from '@/lib/middleware/auth'
 import {
     GUEST_PROMPT_LIMIT,
@@ -41,7 +42,9 @@ export async function POST(request) {
     // Every guest prompt counts, answered or not (same rule as /api/chat).
     const nextUsed = signedIn ? used : used + 1
 
-    const result = await parseIngredientsToRecipe(ingredients, body.preferences || {})
+    const prefs = body.preferences && typeof body.preferences === 'object' ? body.preferences : {}
+    const references = await retrieveReferences(ingredients.slice(0, 500), prefs)
+    const result = await parseIngredientsToRecipe(ingredients, prefs, { references })
     if (!result.success) {
         const failed = NextResponse.json(
             {
