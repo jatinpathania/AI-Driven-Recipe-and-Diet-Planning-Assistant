@@ -26,10 +26,12 @@ export async function PUT(request) {
             }
 
             const cleanUsername = username.trim();
+            // Escaped so a name like "a.*" can't match (or ReDoS) other accounts.
+            const escaped = cleanUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
             // Check if username is already taken by another user
             const existingUser = await User.findOne({
-                username: { $regex: new RegExp(`^${cleanUsername}$`, 'i') },
+                username: { $regex: new RegExp(`^${escaped}$`, 'i') },
                 _id: { $ne: user._id }
             });
 
