@@ -1,0 +1,114 @@
+{
+    "kind": "tip",
+    "note": "General cooking knowledge for the AI's knowledge base. Food-safety temperatures follow USDA guidance.",
+    "items": [
+        {
+            "slug": "safe-cooking-temperatures",
+            "title": "Safe internal cooking temperatures",
+            "tags": ["food-safety", "meat", "thermometer"],
+            "text": "Use a food thermometer in the thickest part. Poultry (whole, pieces, minced): 74°C / 165°F. Minced beef, pork, lamb: 71°C / 160°F. Whole cuts of beef, pork, lamb, veal (steaks, chops, roasts): 63°C / 145°F, then rest 3 minutes. Fish and shellfish: 63°C / 145°F or until flesh is opaque and flakes. Egg dishes: 71°C / 160°F. Leftovers and casseroles reheated: 74°C / 165°F."
+        },
+        {
+            "slug": "leftovers-storage",
+            "title": "Storing and reheating leftovers",
+            "tags": ["food-safety", "storage", "leftovers", "meal-prep"],
+            "text": "Refrigerate cooked food within 2 hours (within 1 hour if it's above 32°C / 90°F). Keep the fridge at or below 4°C / 40°F. Eat refrigerated leftovers within 3–4 days. Frozen leftovers stay safe indefinitely but taste best within 2–3 months. Thaw in the fridge, in cold water, or in the microwave, never on the counter. Reheat until steaming hot (74°C / 165°F). Divide large batches into shallow containers so they cool quickly."
+        },
+        {
+            "slug": "cooked-rice-safety",
+            "title": "Cooked rice safety",
+            "tags": ["food-safety", "rice", "leftovers"],
+            "text": "Cooked rice can carry Bacillus cereus spores that survive cooking. Cool leftover rice quickly (spread it out) and refrigerate within 1 hour if you can. Eat it within 24 hours, reheat only once, and make sure it's steaming hot all the way through. Day-old refrigerated rice is ideal for fried rice because it's drier."
+        },
+        {
+            "slug": "egg-substitutes",
+            "title": "Egg substitutes for baking and binding",
+            "tags": ["substitutions", "vegan", "baking", "allergy"],
+            "text": "To replace 1 egg: 1 tbsp ground flaxseed + 3 tbsp water, rested 5 minutes (binding, muffins, cookies); 3 tbsp aquafaba (chickpea can liquid), which can be whipped like egg white; 1/4 cup unsweetened applesauce or 1/2 mashed banana (moist cakes; adds flavour); 1/4 cup silken tofu, blended (dense bakes, quiche-style fillings). Egg substitutes work best in recipes with 1–2 eggs; recipes that rely on many eggs for structure (sponge, soufflé) rarely convert well."
+        },
+        {
+            "slug": "dairy-substitutes",
+            "title": "Dairy-free swaps",
+            "tags": ["substitutions", "vegan", "dairy-free", "allergy"],
+            "text": "Milk: soy or oat milk behave most like dairy in cooking and baking. Buttermilk: 1 cup plant milk + 1 tbsp lemon juice or vinegar, rest 5 minutes. Cream: full-fat coconut milk or cashew cream (soaked cashews blended with water). Butter: vegan block butter 1:1, or oil at about 3/4 of the amount. Yogurt: soy or coconut yogurt. Paneer: extra-firm tofu, pressed. Cheesy flavour: nutritional yeast. Ghee: neutral oil or coconut oil."
+        },
+        {
+            "slug": "common-baking-substitutions",
+            "title": "Common baking and pantry substitutions",
+            "tags": ["substitutions", "baking", "pantry"],
+            "text": "Buttermilk: 1 cup milk + 1 tbsp lemon juice or white vinegar, rest 5–10 minutes. Self-raising flour: 1 cup plain flour + 1.5 tsp baking powder + 1/4 tsp salt. Baking powder (1 tsp): 1/4 tsp baking soda + 1/2 tsp cream of tartar. Cornflour for thickening: use twice as much plain flour. Brown sugar: white sugar + 1 tbsp molasses per cup. Sour cream: plain Greek yogurt 1:1. Fresh garlic clove: 1/8 tsp garlic powder."
+        },
+        {
+            "slug": "fresh-vs-dried-herbs",
+            "title": "Fresh vs dried herbs",
+            "tags": ["herbs", "substitutions", "flavour"],
+            "text": "1 tbsp fresh chopped herbs ≈ 1 tsp dried. Add dried herbs early so they rehydrate and release flavour; add delicate fresh herbs (coriander, basil, parsley, mint) at the end. Hardy herbs (rosemary, thyme, bay) can go in early. Toast whole spices in hot oil or a dry pan for 30–60 seconds to bring out their aroma, but don't let them burn."
+        },
+        {
+            "slug": "cooking-rice",
+            "title": "Cooking fluffy rice",
+            "tags": ["rice", "technique", "basics"],
+            "text": "Basmati: rinse until the water runs clearer, soak 20–30 minutes, then use about 1.5 cups water per cup of rice. Bring to a boil, cover, simmer on the lowest heat 12 minutes, then rest off the heat 10 minutes before fluffing. Jasmine: about 1.25 cups water per cup, no soak. Brown rice: about 2 cups water per cup, simmer 40 minutes. Don't lift the lid while it simmers."
+        },
+        {
+            "slug": "cooking-pasta",
+            "title": "Cooking pasta well",
+            "tags": ["pasta", "technique", "basics"],
+            "text": "Use plenty of boiling water salted to taste like mild seawater (about 1 tbsp salt per 4 litres). Stir in the first minute so it doesn't stick; no oil needed. If the pasta will finish in the sauce, drain it 1 minute before the packet time. Always save a cup of the starchy pasta water: a splash tossed with the pasta and sauce makes it glossy and helps it cling. Don't rinse pasta unless it's for a cold salad."
+        },
+        {
+            "slug": "dried-beans-and-lentils",
+            "title": "Dried beans and lentils",
+            "tags": ["beans", "lentils", "food-safety", "technique"],
+            "text": "Soak dried beans and chickpeas 8–12 hours (or quick-soak: boil 2 minutes, rest covered 1 hour), then drain and cook in fresh water. Red kidney beans must be boiled hard for at least 10 minutes to destroy a natural toxin; never cook raw kidney beans in a slow cooker without boiling first. Red lentils need no soaking and cook in 15–20 minutes; green/brown lentils 25–30 minutes; split pigeon peas (toor dal) 25–30 minutes or 3 pressure-cooker whistles. Add salt and acidic ingredients after beans soften."
+        },
+        {
+            "slug": "kitchen-hygiene",
+            "title": "Kitchen hygiene and cross-contamination",
+            "tags": ["food-safety", "hygiene", "meat"],
+            "text": "Use a separate chopping board for raw meat, poultry and fish. Don't wash raw chicken: splashing spreads bacteria around the sink. Wash hands, boards and knives in hot soapy water after handling raw meat. Keep raw meat on the bottom shelf of the fridge so it can't drip onto ready-to-eat food. Never put cooked food back on a plate that held raw meat."
+        },
+        {
+            "slug": "searing-and-browning",
+            "title": "Getting a good sear and browning",
+            "tags": ["technique", "meat", "vegetables"],
+            "text": "Pat food dry; surface moisture steams instead of browning. Preheat the pan until the oil shimmers. Don't overcrowd: cook in batches so the pan stays hot. Leave food alone for 2–3 minutes before turning; it releases when a crust forms. Salt meat at least 40 minutes ahead or just before cooking. Mushrooms brown best on high heat with salt added at the end."
+        },
+        {
+            "slug": "fixing-dishes",
+            "title": "Fixing a dish that's too salty, spicy, sour or bland",
+            "tags": ["technique", "troubleshooting", "flavour"],
+            "text": "Too salty: add more of the unsalted base (stock, tomatoes, cooked lentils, rice), a splash of acid (lemon, vinegar) or something creamy; diluting works better than the potato trick. Too spicy: add yogurt, cream, coconut milk, a little sugar or acid, or increase the other ingredients. Too sour: a pinch of sugar or a little fat. Bland: usually needs salt first, then acid, then fresh herbs. Too thin: simmer uncovered or add a cornflour slurry. Too thick: add hot water or stock."
+        },
+        {
+            "slug": "meal-prep-basics",
+            "title": "Meal prep basics",
+            "tags": ["meal-prep", "planning", "storage"],
+            "text": "Cook a grain (rice, quinoa), a protein (chicken, beans, tofu, eggs) and a tray of roasted vegetables in one session, then mix and match through the week. Store components separately so they stay fresh, in shallow airtight containers. Most cooked meals keep 3–4 days in the fridge; freeze portions you'll eat later. Keep sauces and dressings separate until serving so food doesn't go soggy."
+        },
+        {
+            "slug": "protein-sources",
+            "title": "Protein content of common foods",
+            "tags": ["nutrition", "protein", "high-protein"],
+            "text": "Approximate protein: cooked chicken breast 31g per 100g; canned tuna 25g per 100g; cooked salmon 22–25g per 100g; 1 large egg 6g; paneer 18g per 100g; extra-firm tofu 12–17g per 100g; Greek yogurt about 10g per 100g; cooked lentils 9g per 100g; cooked chickpeas 9g per 100g; peanut butter 4g per tablespoon; milk 3.4g per 100ml. A palm-sized portion of meat or fish is roughly 20–30g protein."
+        },
+        {
+            "slug": "measurement-conversions",
+            "title": "Kitchen measurement conversions",
+            "tags": ["conversions", "baking", "basics", "imperial"],
+            "text": "1 cup = 240 ml; 1 tbsp = 15 ml = 3 tsp; 1 tsp = 5 ml. 1 oz = 28 g; 1 lb = 454 g; 1 kg = 2.2 lb. Approximate cup weights: plain flour 125 g, sugar 200 g, brown sugar 220 g, butter 227 g (2 sticks), rice (uncooked) 185 g, rolled oats 90 g. Oven: 160°C = 325°F, 180°C = 350°F, 200°C = 400°F, 220°C = 425°F. Fan ovens: reduce by about 20°C."
+        },
+        {
+            "slug": "deep-frying-safety",
+            "title": "Deep and shallow frying safely",
+            "tags": ["food-safety", "frying", "technique"],
+            "text": "Fry at 170–190°C / 340–375°F; a wooden spoon handle dipped in the oil should bubble steadily. Use a deep, heavy pan filled no more than one-third with oil, and lower food in away from you. Dry food first: water makes oil spit. Never leave hot oil unattended. If oil catches fire, turn off the heat and cover the pan with a lid or damp towel; never throw water on it. Let oil cool fully before straining and storing."
+        },
+        {
+            "slug": "knife-basics",
+            "title": "Knife basics",
+            "tags": ["technique", "basics", "equipment"],
+            "text": "A sharp knife is safer than a dull one because it doesn't slip. Curl the fingertips of your guiding hand under (the claw grip) and let the blade rest against your knuckles. Put a damp towel under the chopping board so it doesn't slide. Cut round foods (onions, potatoes) flat-side down first. Hone the edge often and sharpen a few times a year. Wash knives by hand and never leave them in a sink of water."
+        }
+    ]
+}

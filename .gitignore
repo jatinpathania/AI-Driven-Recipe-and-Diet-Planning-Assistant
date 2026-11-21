@@ -63,7 +63,9 @@ temp/
 # Uploads and generated files
 /uploads
 /public/uploads
-/data
+/data/*
+# The AI knowledge base is source, not generated (npm run knowledge:build)
+!/data/knowledge/
 
 # Build artifacts
 .nyc_output/

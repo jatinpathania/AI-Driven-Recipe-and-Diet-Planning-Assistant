@@ -1,0 +1,348 @@
+{
+    "kind": "recipe",
+    "note": "Curated starter recipes for the AI's knowledge base. Calories and protein are per serving and approximate. Diets: vegan implies vegetarian and pescatarian, vegetarian implies pescatarian (the build script adds those).",
+    "items": [
+        {
+            "slug": "masala-omelette",
+            "title": "Masala Omelette",
+            "diets": ["vegetarian", "keto"],
+            "tags": ["breakfast", "indian", "eggs", "quick"],
+            "calories": 260, "protein": 15, "time": 10, "servings": 1,
+            "ingredients": ["2 eggs", "1/4 onion, finely chopped", "1/2 tomato, chopped", "1 green chilli, chopped", "1 tbsp coriander leaves", "1 tsp oil", "pinch of turmeric and salt"],
+            "steps": ["Whisk eggs with turmeric, salt, onion, tomato, chilli and coriander.", "Heat oil in a pan on medium.", "Pour in the eggs and cook 2 minutes until the base sets.", "Fold and cook 1 more minute."]
+        },
+        {
+            "slug": "chana-masala",
+            "title": "Chana Masala",
+            "diets": ["vegan"],
+            "tags": ["dinner", "indian", "chickpeas", "one-pot"],
+            "calories": 380, "protein": 15, "time": 35, "servings": 3,
+            "ingredients": ["2 cans (800g) chickpeas, drained", "1 onion, chopped", "2 tomatoes, pureed", "1 tbsp ginger-garlic paste", "1.5 tsp chana masala or garam masala", "1/2 tsp turmeric, 1 tsp chilli powder", "2 tbsp oil"],
+            "steps": ["Fry onion in oil 8 minutes until golden.", "Add ginger-garlic paste, cook 1 minute.", "Add spices and tomato puree, cook 6 minutes until oil separates.", "Add chickpeas and 1 cup water, simmer 15 minutes, mashing a few chickpeas to thicken.", "Finish with lemon juice and coriander."]
+        },
+        {
+            "slug": "dal-tadka",
+            "title": "Dal Tadka (Yellow Lentil Dal)",
+            "diets": ["vegan"],
+            "tags": ["dinner", "indian", "lentils", "budget"],
+            "calories": 320, "protein": 16, "time": 35, "servings": 4,
+            "ingredients": ["1 cup toor or moong dal, rinsed", "1/2 tsp turmeric", "1 onion and 1 tomato, chopped", "4 garlic cloves, sliced", "1 tsp cumin seeds", "2 dried red chillies", "2 tbsp oil (or ghee if not vegan)"],
+            "steps": ["Boil dal with turmeric and 3 cups water 20–25 minutes (or 3 pressure-cooker whistles) until soft.", "Heat oil, add cumin, garlic and red chillies for 1 minute.", "Add onion 5 minutes, then tomato 4 minutes.", "Pour the tadka into the dal, salt to taste, simmer 3 minutes."]
+        },
+        {
+            "slug": "paneer-bhurji",
+            "title": "Paneer Bhurji",
+            "diets": ["vegetarian", "keto", "high-protein"],
+            "tags": ["breakfast", "dinner", "indian", "paneer", "quick"],
+            "calories": 380, "protein": 22, "time": 15, "servings": 2,
+            "ingredients": ["250g paneer, crumbled", "1 onion, chopped", "1 tomato, chopped", "1 green chilli", "1/2 tsp turmeric, 1/2 tsp garam masala", "1 tbsp butter or oil"],
+            "steps": ["Cook onion and chilli in butter 4 minutes.", "Add tomato and spices, cook 3 minutes.", "Add paneer, stir 3 minutes until hot.", "Top with coriander."]
+        },
+        {
+            "slug": "palak-paneer",
+            "title": "Palak Paneer",
+            "diets": ["vegetarian", "keto"],
+            "tags": ["dinner", "indian", "paneer", "spinach"],
+            "calories": 360, "protein": 18, "time": 30, "servings": 3,
+            "ingredients": ["500g spinach", "200g paneer, cubed", "1 onion, chopped", "1 tbsp ginger-garlic paste", "1 tsp cumin seeds, 1/2 tsp garam masala", "2 tbsp cream", "1 tbsp oil"],
+            "steps": ["Blanch spinach 2 minutes, cool in cold water, blend smooth.", "Fry cumin and onion in oil 6 minutes, add ginger-garlic 1 minute.", "Add spinach puree and garam masala, simmer 5 minutes.", "Add paneer and cream, simmer 3 minutes."]
+        },
+        {
+            "slug": "vegetable-pulao",
+            "title": "Vegetable Pulao",
+            "diets": ["vegan"],
+            "tags": ["lunch", "dinner", "indian", "rice", "one-pot"],
+            "calories": 340, "protein": 8, "time": 30, "servings": 3,
+            "ingredients": ["1 cup basmati rice, rinsed and soaked 20 minutes", "1.5 cups mixed vegetables (peas, carrot, beans)", "1 onion, sliced", "1 bay leaf, 4 cloves, 2 cardamom, 1 tsp cumin", "2 tbsp oil", "1.75 cups water"],
+            "steps": ["Fry whole spices in oil 30 seconds, add onion 5 minutes.", "Add vegetables 2 minutes.", "Add drained rice, water and salt, bring to a boil.", "Cover and cook on low 12 minutes, rest 5 minutes, fluff."]
+        },
+        {
+            "slug": "kanda-poha",
+            "title": "Kanda Poha",
+            "diets": ["vegan"],
+            "tags": ["breakfast", "indian", "quick", "budget"],
+            "calories": 280, "protein": 6, "time": 20, "servings": 2,
+            "ingredients": ["1.5 cups thick poha (flattened rice)", "1 onion, chopped", "1 tsp mustard seeds, curry leaves", "1/2 tsp turmeric", "2 tbsp peanuts", "1 tbsp oil", "lemon and coriander"],
+            "steps": ["Rinse poha in a sieve until soft, drain 5 minutes.", "Fry peanuts in oil 2 minutes, add mustard seeds and curry leaves.", "Add onion 4 minutes, then turmeric.", "Add poha and salt, toss 3 minutes on low, finish with lemon and coriander."]
+        },
+        {
+            "slug": "rava-upma",
+            "title": "Rava Upma",
+            "diets": ["vegan"],
+            "tags": ["breakfast", "indian", "quick"],
+            "calories": 270, "protein": 7, "time": 20, "servings": 2,
+            "ingredients": ["1 cup semolina (rava)", "1 onion, chopped", "1 tsp mustard seeds, curry leaves", "1 green chilli, 1 tsp grated ginger", "1/4 cup peas or carrot", "2 tbsp oil", "2.5 cups water"],
+            "steps": ["Dry-roast semolina 5 minutes until fragrant, set aside.", "Fry mustard seeds, curry leaves, chilli, ginger and onion in oil 4 minutes; add vegetables.", "Add water and salt, bring to a boil.", "Stream in semolina while stirring, cook 3 minutes covered on low."]
+        },
+        {
+            "slug": "home-style-chicken-curry",
+            "title": "Home-style Chicken Curry",
+            "diets": ["high-protein"],
+            "tags": ["dinner", "indian", "chicken"],
+            "calories": 420, "protein": 32, "time": 45, "servings": 4,
+            "ingredients": ["750g chicken thighs or curry cut", "2 onions, chopped", "2 tomatoes, pureed", "1.5 tbsp ginger-garlic paste", "1 tsp each turmeric, chilli powder, coriander powder, garam masala", "1/2 cup yogurt", "3 tbsp oil"],
+            "steps": ["Fry onions in oil 10 minutes until deep golden.", "Add ginger-garlic paste 1 minute, then powdered spices 30 seconds.", "Add tomato, cook 6 minutes; stir in yogurt.", "Add chicken, sear 5 minutes, add 1 cup water, simmer covered 20 minutes until chicken reaches 74°C/165°F.", "Finish with garam masala and coriander."]
+        },
+        {
+            "slug": "tandoori-chicken-traybake",
+            "title": "Tandoori Chicken Traybake",
+            "diets": ["keto", "high-protein"],
+            "tags": ["dinner", "indian", "chicken", "oven", "meal-prep"],
+            "calories": 330, "protein": 38, "time": 40, "servings": 4,
+            "ingredients": ["800g chicken thighs or breast pieces", "3/4 cup thick yogurt", "1 tbsp ginger-garlic paste", "2 tsp tandoori masala, 1 tsp chilli powder", "1 tbsp lemon juice", "1 tbsp oil", "1 onion and 1 pepper, cut in chunks"],
+            "steps": ["Mix yogurt, paste, spices, lemon, oil and salt; coat chicken and marinate at least 30 minutes (overnight is best).", "Heat oven to 220°C/430°F.", "Spread chicken and vegetables on a lined tray.", "Roast 25–30 minutes until charred at the edges and 74°C/165°F inside."]
+        },
+        {
+            "slug": "egg-fried-rice",
+            "title": "Egg Fried Rice",
+            "diets": ["vegetarian"],
+            "tags": ["lunch", "dinner", "chinese", "rice", "leftovers", "quick"],
+            "calories": 430, "protein": 14, "time": 15, "servings": 2,
+            "ingredients": ["3 cups cold cooked rice (day-old works best)", "3 eggs, beaten", "1 cup frozen peas and carrots", "3 spring onions, sliced", "2 garlic cloves, minced", "2 tbsp soy sauce, 1 tsp sesame oil", "1.5 tbsp oil"],
+            "steps": ["Scramble eggs in a very hot wok with 1/2 tbsp oil, remove.", "Add remaining oil, garlic and vegetables, stir-fry 2 minutes.", "Add rice, press and toss 3–4 minutes until hot and slightly crisp.", "Return eggs, add soy sauce, sesame oil and spring onions, toss 1 minute."]
+        },
+        {
+            "slug": "chicken-vegetable-stir-fry",
+            "title": "Chicken and Vegetable Stir-fry",
+            "diets": ["high-protein"],
+            "tags": ["dinner", "chinese", "chicken", "quick"],
+            "calories": 380, "protein": 34, "time": 20, "servings": 2,
+            "ingredients": ["300g chicken breast, thinly sliced", "2 cups mixed vegetables (pepper, broccoli, carrot)", "2 garlic cloves and 1 tsp ginger, minced", "2 tbsp soy sauce, 1 tbsp oyster or hoisin sauce", "1 tsp cornflour mixed with 3 tbsp water", "1 tbsp oil"],
+            "steps": ["Sear chicken in a very hot pan with oil 4–5 minutes until cooked through, remove.", "Stir-fry vegetables, garlic and ginger 3 minutes so they stay crisp.", "Return chicken, add sauces and cornflour slurry.", "Toss 1 minute until glossy; serve with rice or noodles."]
+        },
+        {
+            "slug": "crispy-tofu-stir-fry",
+            "title": "Crispy Tofu Stir-fry",
+            "diets": ["vegan", "high-protein"],
+            "tags": ["dinner", "asian", "tofu", "quick"],
+            "calories": 340, "protein": 21, "time": 25, "servings": 2,
+            "ingredients": ["400g firm tofu, pressed 10 minutes and cubed", "1 tbsp cornflour", "2 cups broccoli and pepper", "2 garlic cloves, 1 tsp ginger", "2 tbsp soy sauce, 1 tsp maple syrup or sugar, 1 tsp rice vinegar", "1.5 tbsp oil"],
+            "steps": ["Toss tofu in cornflour and a pinch of salt.", "Fry in oil 8–10 minutes, turning, until golden on all sides; remove.", "Stir-fry vegetables, garlic and ginger 3 minutes.", "Add sauce and tofu, toss 1 minute."]
+        },
+        {
+            "slug": "spaghetti-aglio-olio",
+            "title": "Spaghetti Aglio e Olio",
+            "diets": ["vegan"],
+            "tags": ["dinner", "italian", "pasta", "quick", "budget"],
+            "calories": 480, "protein": 13, "time": 15, "servings": 2,
+            "ingredients": ["200g spaghetti", "4 tbsp olive oil", "5 garlic cloves, thinly sliced", "1/2 tsp chilli flakes", "handful of parsley, chopped", "salt"],
+            "steps": ["Cook spaghetti in well-salted boiling water until 1 minute short of the packet time; save 1 cup pasta water.", "Meanwhile warm oil with garlic on low 3–4 minutes until pale gold (don't brown), add chilli.", "Add pasta and a splash of pasta water, toss hard 1 minute to make a glossy sauce.", "Finish with parsley."]
+        },
+        {
+            "slug": "tomato-basil-pasta",
+            "title": "Tomato Basil Pasta",
+            "diets": ["vegetarian"],
+            "tags": ["dinner", "italian", "pasta", "budget"],
+            "calories": 450, "protein": 15, "time": 20, "servings": 2,
+            "ingredients": ["200g penne or spaghetti", "1 can (400g) chopped tomatoes", "3 garlic cloves", "2 tbsp olive oil", "handful of basil", "2 tbsp grated parmesan", "pinch of sugar"],
+            "steps": ["Cook pasta in salted water; save 1/2 cup water.", "Soften garlic in oil 1 minute, add tomatoes, sugar and salt.", "Simmer 10 minutes until thick.", "Toss in pasta, pasta water, basil and parmesan."]
+        },
+        {
+            "slug": "creamy-mushroom-pasta",
+            "title": "Creamy Mushroom Pasta",
+            "diets": ["vegetarian"],
+            "tags": ["dinner", "italian", "pasta", "mushroom"],
+            "calories": 520, "protein": 16, "time": 20, "servings": 2,
+            "ingredients": ["200g pasta", "250g mushrooms, sliced", "2 garlic cloves", "1 tbsp butter", "1/2 cup cream (or 1/3 cup cream cheese)", "2 tbsp parmesan", "black pepper, thyme"],
+            "steps": ["Cook pasta in salted water; save 1/2 cup water.", "Brown mushrooms in butter on high 6 minutes without stirring too often.", "Add garlic and thyme 1 minute, then cream and a splash of pasta water.", "Toss with pasta and parmesan, season with pepper."]
+        },
+        {
+            "slug": "lemon-garlic-salmon",
+            "title": "Lemon Garlic Salmon",
+            "diets": ["pescatarian", "keto", "high-protein"],
+            "tags": ["dinner", "fish", "quick"],
+            "calories": 420, "protein": 34, "time": 20, "servings": 2,
+            "ingredients": ["2 salmon fillets (150g each)", "1 tbsp butter, 1 tbsp olive oil", "3 garlic cloves, minced", "1 lemon", "salt, pepper, parsley"],
+            "steps": ["Pat salmon dry and season.", "Sear skin-side down in hot oil 4 minutes, flip, cook 2–3 minutes until it flakes (63°C/145°F).", "Add butter, garlic and lemon juice to the pan for 30 seconds, spoon over fish.", "Serve with greens or rice."]
+        },
+        {
+            "slug": "tuna-pasta-salad",
+            "title": "Tuna Pasta Salad",
+            "diets": ["pescatarian", "high-protein"],
+            "tags": ["lunch", "fish", "meal-prep", "budget"],
+            "calories": 430, "protein": 28, "time": 15, "servings": 3,
+            "ingredients": ["200g pasta shapes", "2 cans tuna, drained", "1 cup sweetcorn", "1/2 cucumber and 1/2 red onion, diced", "3 tbsp Greek yogurt + 1 tbsp mayo", "1 tbsp lemon juice"],
+            "steps": ["Cook pasta, rinse under cold water, drain well.", "Mix yogurt, mayo, lemon, salt and pepper.", "Fold in pasta, tuna and vegetables.", "Keeps 3 days in the fridge."]
+        },
+        {
+            "slug": "garlic-butter-prawns",
+            "title": "Garlic Butter Prawns",
+            "diets": ["pescatarian", "keto", "high-protein"],
+            "tags": ["dinner", "seafood", "quick"],
+            "calories": 290, "protein": 30, "time": 12, "servings": 2,
+            "ingredients": ["300g raw prawns, peeled", "2 tbsp butter", "4 garlic cloves, minced", "pinch of chilli flakes", "1 tbsp lemon juice", "parsley"],
+            "steps": ["Pat prawns dry and season.", "Melt butter on medium-high, add garlic and chilli 30 seconds.", "Add prawns, cook 1.5–2 minutes per side until pink and opaque.", "Finish with lemon and parsley."]
+        },
+        {
+            "slug": "greek-salad",
+            "title": "Greek Salad",
+            "diets": ["vegetarian", "keto"],
+            "tags": ["lunch", "salad", "mediterranean", "no-cook"],
+            "calories": 280, "protein": 9, "time": 10, "servings": 2,
+            "ingredients": ["2 tomatoes, chunked", "1 cucumber, chunked", "1/2 red onion, sliced", "1/2 green pepper", "100g feta", "handful of olives", "2 tbsp olive oil, 1 tbsp red wine vinegar, dried oregano"],
+            "steps": ["Combine vegetables and olives.", "Whisk oil, vinegar, oregano, salt and pepper.", "Dress the salad and top with the feta."]
+        },
+        {
+            "slug": "chickpea-salad",
+            "title": "Lemony Chickpea Salad",
+            "diets": ["vegan"],
+            "tags": ["lunch", "salad", "no-cook", "meal-prep"],
+            "calories": 320, "protein": 13, "time": 10, "servings": 2,
+            "ingredients": ["1 can (400g) chickpeas, drained", "1 cucumber and 1 tomato, diced", "1/4 red onion", "handful of parsley or coriander", "2 tbsp olive oil, 1 lemon", "1/2 tsp cumin"],
+            "steps": ["Rinse and drain chickpeas.", "Dice the vegetables and herbs.", "Whisk oil, lemon juice, cumin and salt.", "Toss everything; it keeps 3 days."]
+        },
+        {
+            "slug": "red-lentil-soup",
+            "title": "Red Lentil Soup",
+            "diets": ["vegan"],
+            "tags": ["lunch", "dinner", "soup", "lentils", "budget", "one-pot"],
+            "calories": 300, "protein": 17, "time": 35, "servings": 4,
+            "ingredients": ["1 cup red lentils, rinsed", "1 onion, 1 carrot, 2 garlic cloves, chopped", "1 tsp cumin, 1/2 tsp smoked paprika", "1 can chopped tomatoes", "5 cups vegetable stock", "2 tbsp olive oil, lemon"],
+            "steps": ["Soften onion, carrot and garlic in oil 6 minutes.", "Add spices 30 seconds, then lentils, tomatoes and stock.", "Simmer 20 minutes until lentils collapse.", "Blend partly or fully; finish with lemon and salt."]
+        },
+        {
+            "slug": "roasted-tomato-soup",
+            "title": "Roasted Tomato Soup",
+            "diets": ["vegan"],
+            "tags": ["lunch", "soup", "oven"],
+            "calories": 160, "protein": 4, "time": 40, "servings": 4,
+            "ingredients": ["1kg tomatoes, halved", "1 onion, quartered", "4 garlic cloves", "2 tbsp olive oil", "2 cups vegetable stock", "basil, salt, pepper"],
+            "steps": ["Roast tomatoes, onion and garlic with oil and salt at 200°C/400°F for 30 minutes.", "Blend with stock and basil.", "Simmer 5 minutes and season."]
+        },
+        {
+            "slug": "overnight-oats",
+            "title": "Overnight Oats",
+            "diets": ["vegetarian"],
+            "tags": ["breakfast", "no-cook", "meal-prep"],
+            "calories": 350, "protein": 15, "time": 5, "servings": 1,
+            "ingredients": ["1/2 cup rolled oats", "1/2 cup milk (any; use plant milk and plant yogurt for vegan)", "1/4 cup Greek yogurt", "1 tbsp chia seeds", "1 tsp honey or maple syrup", "berries or banana"],
+            "steps": ["Stir oats, milk, yogurt, chia and sweetener in a jar.", "Refrigerate at least 4 hours or overnight.", "Top with fruit; keeps 3 days."]
+        },
+        {
+            "slug": "banana-oat-pancakes",
+            "title": "Banana Oat Pancakes",
+            "diets": ["vegetarian"],
+            "tags": ["breakfast", "gluten-free-oats", "quick"],
+            "calories": 300, "protein": 14, "time": 15, "servings": 1,
+            "ingredients": ["1 ripe banana", "2 eggs", "1/3 cup oats", "pinch of cinnamon and baking powder", "1 tsp butter or oil"],
+            "steps": ["Blend banana, eggs, oats, cinnamon and baking powder.", "Rest batter 3 minutes.", "Cook small pancakes in a lightly oiled pan on medium-low 2 minutes per side."]
+        },
+        {
+            "slug": "greek-yogurt-parfait",
+            "title": "Greek Yogurt Protein Parfait",
+            "diets": ["vegetarian", "high-protein"],
+            "tags": ["breakfast", "snack", "no-cook"],
+            "calories": 300, "protein": 22, "time": 5, "servings": 1,
+            "ingredients": ["200g Greek yogurt (high-protein or skyr)", "1/4 cup granola", "1/2 cup berries", "1 tsp honey", "1 tbsp nuts or seeds"],
+            "steps": ["Layer yogurt, berries and granola in a glass.", "Top with nuts and honey; eat right away so the granola stays crunchy."]
+        },
+        {
+            "slug": "avocado-toast-egg",
+            "title": "Avocado Toast with Egg",
+            "diets": ["vegetarian"],
+            "tags": ["breakfast", "quick"],
+            "calories": 350, "protein": 15, "time": 10, "servings": 1,
+            "ingredients": ["1 slice wholegrain bread", "1/2 avocado", "1 egg", "lemon, chilli flakes, salt"],
+            "steps": ["Toast the bread.", "Mash avocado with lemon and salt, spread on toast.", "Fry or poach the egg (3 minutes for a runny yolk) and place on top; add chilli flakes."]
+        },
+        {
+            "slug": "chicken-burrito-bowl",
+            "title": "Chicken Burrito Bowl",
+            "diets": ["high-protein"],
+            "tags": ["lunch", "dinner", "mexican", "chicken", "meal-prep"],
+            "calories": 520, "protein": 38, "time": 30, "servings": 3,
+            "ingredients": ["450g chicken breast", "1 tbsp taco seasoning (cumin, paprika, chilli, garlic)", "1.5 cups cooked rice", "1 can black beans, drained", "1 cup sweetcorn", "salsa, lime, lettuce"],
+            "steps": ["Rub chicken with seasoning and oil.", "Cook in a hot pan 5–6 minutes per side to 74°C/165°F, rest 5 minutes, slice.", "Warm beans and corn.", "Build bowls: rice, beans, corn, chicken, salsa, lettuce and lime."]
+        },
+        {
+            "slug": "black-bean-tacos",
+            "title": "Black Bean Tacos",
+            "diets": ["vegan"],
+            "tags": ["dinner", "mexican", "beans", "quick"],
+            "calories": 420, "protein": 15, "time": 15, "servings": 2,
+            "ingredients": ["1 can black beans, drained", "1 tsp cumin, 1/2 tsp smoked paprika", "6 small corn tortillas", "1 avocado", "1/2 red onion, shredded cabbage", "lime, coriander, salsa"],
+            "steps": ["Warm beans with spices and a splash of water 5 minutes, mash lightly.", "Char tortillas in a dry pan 30 seconds per side.", "Fill with beans, avocado, onion, cabbage and salsa; finish with lime."]
+        },
+        {
+            "slug": "shakshuka",
+            "title": "Shakshuka",
+            "diets": ["vegetarian"],
+            "tags": ["breakfast", "dinner", "middle-eastern", "eggs", "one-pot"],
+            "calories": 300, "protein": 16, "time": 25, "servings": 2,
+            "ingredients": ["4 eggs", "1 can chopped tomatoes", "1 onion and 1 red pepper, sliced", "2 garlic cloves", "1 tsp cumin, 1 tsp paprika, pinch of chilli", "1 tbsp olive oil", "parsley or feta"],
+            "steps": ["Soften onion and pepper in oil 7 minutes, add garlic and spices 1 minute.", "Add tomatoes, simmer 8 minutes until thick.", "Make 4 wells, crack in eggs, cover and cook on low 5–7 minutes until whites set.", "Top with parsley or feta."]
+        },
+        {
+            "slug": "cauliflower-fried-rice",
+            "title": "Cauliflower Fried Rice",
+            "diets": ["vegetarian", "keto"],
+            "tags": ["dinner", "low-carb", "quick"],
+            "calories": 220, "protein": 11, "time": 15, "servings": 2,
+            "ingredients": ["1 medium cauliflower, grated or pulsed into rice", "2 eggs", "1/2 cup peas and carrot (skip for strict keto)", "2 spring onions", "2 garlic cloves", "2 tbsp soy sauce, 1 tsp sesame oil", "1 tbsp oil"],
+            "steps": ["Scramble eggs in oil, remove.", "Stir-fry garlic and vegetables 2 minutes.", "Add cauliflower rice, cook on high 5 minutes until tender but not mushy.", "Add eggs, soy, sesame oil and spring onions."]
+        },
+        {
+            "slug": "zucchini-noodles-pesto",
+            "title": "Zucchini Noodles with Pesto",
+            "diets": ["vegetarian", "keto"],
+            "tags": ["lunch", "dinner", "low-carb", "quick"],
+            "calories": 310, "protein": 9, "time": 10, "servings": 2,
+            "ingredients": ["3 zucchini (courgettes), spiralised", "4 tbsp basil pesto", "1 cup cherry tomatoes, halved", "2 tbsp pine nuts, toasted", "parmesan"],
+            "steps": ["Pat zucchini noodles dry with a towel.", "Toss in a hot pan 2 minutes only, so they don't go watery.", "Off the heat, toss with pesto and tomatoes.", "Top with pine nuts and parmesan."]
+        },
+        {
+            "slug": "sweet-potato-black-beans",
+            "title": "Stuffed Sweet Potatoes with Black Beans",
+            "diets": ["vegan"],
+            "tags": ["dinner", "oven", "budget"],
+            "calories": 380, "protein": 13, "time": 50, "servings": 2,
+            "ingredients": ["2 medium sweet potatoes", "1 can black beans, drained", "1/2 cup sweetcorn", "1 tsp cumin, 1/2 tsp chilli", "salsa, lime, coriander", "optional: avocado"],
+            "steps": ["Prick potatoes and bake at 200°C/400°F for 45 minutes (or microwave 8–10 minutes) until soft.", "Warm beans and corn with spices 5 minutes.", "Split potatoes and fill with beans, salsa, lime and coriander."]
+        },
+        {
+            "slug": "keema-matar",
+            "title": "Keema Matar (Spiced Mince with Peas)",
+            "diets": ["high-protein"],
+            "tags": ["dinner", "indian", "mince", "one-pot"],
+            "calories": 410, "protein": 28, "time": 35, "servings": 4,
+            "ingredients": ["500g lean lamb, mutton or chicken mince", "1 cup peas", "2 onions, chopped", "2 tomatoes, chopped", "1 tbsp ginger-garlic paste", "1 tsp each cumin, coriander powder, garam masala, chilli", "2 tbsp oil"],
+            "steps": ["Fry onions in oil 8 minutes, add ginger-garlic 1 minute.", "Add mince, break it up and brown 6 minutes.", "Add spices and tomatoes, cook 5 minutes.", "Add peas and 1/2 cup water, simmer 12 minutes until mince is cooked through (71°C/160°F)."]
+        },
+        {
+            "slug": "rajma",
+            "title": "Rajma (Kidney Bean Curry)",
+            "diets": ["vegan"],
+            "tags": ["dinner", "indian", "beans"],
+            "calories": 360, "protein": 16, "time": 45, "servings": 4,
+            "ingredients": ["2 cans (800g) kidney beans, drained (or 1 cup dried, soaked overnight and boiled hard)", "2 onions, chopped", "3 tomatoes, pureed", "1 tbsp ginger-garlic paste", "1 tsp cumin seeds, 1 tsp each chilli and coriander powder, 1/2 tsp garam masala", "2 tbsp oil"],
+            "steps": ["Fry cumin and onions in oil 8 minutes, add ginger-garlic 1 minute.", "Add powdered spices and tomato puree, cook 8 minutes.", "Add beans and 2 cups water, simmer 20 minutes, mashing a few beans for body.", "Finish with garam masala; serve with rice."]
+        },
+        {
+            "slug": "classic-hummus",
+            "title": "Classic Hummus",
+            "diets": ["vegan"],
+            "tags": ["snack", "dip", "middle-eastern", "no-cook"],
+            "calories": 180, "protein": 6, "time": 10, "servings": 4,
+            "ingredients": ["1 can (400g) chickpeas, drained (save the liquid)", "3 tbsp tahini", "1 lemon, juiced", "1 garlic clove", "2 tbsp olive oil", "1/2 tsp cumin, salt"],
+            "steps": ["Blend tahini and lemon 1 minute until fluffy.", "Add chickpeas, garlic, cumin and salt, blend.", "Stream in 2–4 tbsp ice water or chickpea liquid until very smooth.", "Top with olive oil and paprika."]
+        },
+        {
+            "slug": "mug-brownie",
+            "title": "2-Minute Mug Brownie",
+            "diets": ["vegetarian"],
+            "tags": ["dessert", "microwave", "quick"],
+            "calories": 350, "protein": 5, "time": 3, "servings": 1,
+            "ingredients": ["4 tbsp flour", "3 tbsp sugar", "2 tbsp cocoa powder", "3 tbsp milk", "2 tbsp oil or melted butter", "pinch of salt, a few chocolate chips"],
+            "steps": ["Mix everything in a large mug until smooth.", "Microwave 60–80 seconds; the centre should look slightly fudgy.", "Rest 1 minute before eating."]
+        },
+        {
+            "slug": "mango-lassi",
+            "title": "Mango Lassi",
+            "diets": ["vegetarian"],
+            "tags": ["drink", "indian", "no-cook"],
+            "calories": 220, "protein": 7, "time": 5, "servings": 2,
+            "ingredients": ["1 cup ripe mango pulp", "1 cup plain yogurt", "1/2 cup cold milk", "1–2 tsp sugar", "pinch of cardamom", "ice"],
+            "steps": ["Blend everything until smooth and frothy.", "Taste and adjust sweetness; serve cold."]
+        }
+    ]
+}
