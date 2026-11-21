@@ -8,19 +8,21 @@ import { useSession, signOut } from 'next-auth/react'
 import Image from 'next/image'
 import { useKitchenTheme } from '@/context/KitchenThemeContext'
 import { useGuestUser } from '@/context/GuestUserContext'
-import { getCurrentUser, getUserProfile, getUserData, isAuthenticated, clearUserData, updateUserProfile } from '@/utils/api'
+import { getCurrentUser, getUserData, isAuthenticated, clearUserData, updateUserProfile } from '@/utils/api'
+import { useKitchenData } from '@/context/KitchenDataContext'
 import Link from 'next/link'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import ThemeSwitch from '@/components/ui/ThemeSwitch'
+import MobileMenuButton from '@/components/Layout/MobileMenuButton'
 
 const ProfilePage = () => {
     const router = useRouter()
     const { data: session } = useSession()
     const { theme, toggleTheme, mounted } = useKitchenTheme()
     const { userId, guestId, isGuest, login, logout } = useGuestUser()
+    const { recipes: savedRecipes, today, totalFor, startCooking } = useKitchenData()
+    const todayCalories = today ? totalFor(today) : 0
     const [userData, setUserData] = useState(null)
-    const [savedRecipes, setSavedRecipes] = useState([])
-    const [todayCalories, setTodayCalories] = useState(0)
     const [isMounted, setIsMounted] = useState(false)
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
@@ -117,17 +119,6 @@ const ProfilePage = () => {
                 console.error('Failed to load profile:', error)
             }
 
-            try {
-                const recipes = JSON.parse(localStorage.getItem('flavourai_recipes') || '[]')
-                setSavedRecipes(recipes)
-            } catch {}
-
-            try {
-                const calories = JSON.parse(localStorage.getItem('flavourai_calories') || '{}')
-                const today = new Date().toISOString().split('T')[0]
-                const todayFoods = calories[today] || []
-                setTodayCalories(todayFoods.reduce((sum, f) => sum + (f.calories || 0), 0))
-            } catch {}
         }
         loadData()
     }, [session, login])
@@ -173,12 +164,12 @@ const ProfilePage = () => {
     ]
     if (!isMounted) {
         return (
-            <div className="flex flex-col h-screen relative overflow-hidden w-full bg-[var(--bg-base)] text-[var(--text-main)]" />
+            <div className="flex flex-col h-dvh relative overflow-hidden w-full bg-[var(--bg-base)] text-[var(--text-main)]" />
         )
     }
 
     return (
-        <div className="flex flex-col h-screen relative overflow-hidden w-full bg-[var(--bg-base)] text-[var(--text-main)]">
+        <div className="flex flex-col h-dvh relative overflow-hidden w-full bg-[var(--bg-base)] text-[var(--text-main)]">
             {/* Toast */}
             <AnimatePresence>
                 {toast && (
@@ -190,9 +181,10 @@ const ProfilePage = () => {
             </AnimatePresence>
 
             <div className="relative z-10 flex flex-col h-full">
-                <div className="px-6 md:px-8 py-4 flex items-center justify-between flex-shrink-0 border-b border-[#1A271E]">
-                    <div className="flex items-center gap-3">
-                        <div>
+                <div className="px-4 sm:px-6 md:px-8 py-4 flex items-center justify-between flex-shrink-0 border-b border-[var(--border)] gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <MobileMenuButton />
+                        <div className="min-w-0">
                             <h1 className="text-lg font-bold text-[#F3F4F6]">Profile</h1>
                             <p className="text-[11px] text-[#829A8B]">Your cooking journey</p>
                         </div>
@@ -269,7 +261,7 @@ const ProfilePage = () => {
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                                     {savedRecipes.slice(0, 6).map((recipe, i) => (
-                                        <button key={i} onClick={() => { localStorage.setItem('flavourai_cooking_recipe', JSON.stringify(recipe)); router.push('/kitchen/cook') }}
+                                        <button key={i} onClick={() => { startCooking(recipe); router.push('/kitchen/cook') }}
                                             className="flex items-center gap-2.5 p-2.5 rounded-xl bg-[#1A271E]/50 hover:bg-[#1A271E] transition-all text-left group border border-transparent hover:border-[#24362A]">
                                             <span className="text-lg">{recipe.emoji || '🍽️'}</span>
                                             <div className="flex-1 min-w-0">

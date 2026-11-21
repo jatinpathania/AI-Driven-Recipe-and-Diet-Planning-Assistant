@@ -1,302 +1,207 @@
 "use client"
 
-import React from 'react'
-import { Sparkles, Play, CalendarPlus, Bookmark, Clock, Flame } from 'lucide-react'
-import { motion } from 'framer-motion'
+import React, { memo, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Sparkles, Play, CalendarPlus, Bookmark, BookmarkCheck, ShoppingCart, Clock, Flame, Zap, ChevronDown, Timer as TimerIcon } from 'lucide-react'
+import { renderMarkdown } from '@/lib/chat/format'
+import { parseRecipeText } from '@/lib/recipe/normalize'
+import { parseDurations } from '@/lib/recipe/parse'
+import { useKitchenData } from '@/context/KitchenDataContext'
+import { useTimers } from '@/context/TimersContext'
+import { useToast } from '@/components/ui/Toaster'
+import Tilt from '@/components/ui/Tilt'
 
-const parseRecipeText = (text) => {
-    if (!text) return null;
-    
-    // Quick checks to ensure it looks like a structured recipe output
-    const hasIngredients = /ingredients/i.test(text);
-    const hasSteps = /steps/i.test(text) || /1\.\s/i.test(text);
-    if (!hasIngredients || !hasSteps) return null;
+const enter = {
+    initial: { opacity: 0, y: 18, rotateX: -18 },
+    animate: { opacity: 1, y: 0, rotateX: 0 },
+    transition: { type: 'spring', stiffness: 260, damping: 24 },
+}
 
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-    if (lines.length < 3) return null;
+export const AIAvatar = () => (
+    <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-md shadow-emerald-500/25">
+        <Sparkles className="h-4 w-4" />
+    </div>
+)
 
-    let title = "";
-    let stats = "";
-    let ingredients = [];
-    let steps = [];
-    let currentSection = "";
-    let intro = "";
-
-    // Let's parse line by line
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const lowerLine = line.toLowerCase();
-
-        if (lowerLine.startsWith('ingredients:')) {
-            currentSection = "ingredients";
-            continue;
-        } else if (lowerLine.startsWith('steps:')) {
-            currentSection = "steps";
-            continue;
-        }
-
-        if (currentSection === "") {
-            if (!title) {
-                title = line.replace(/^\*\*|^\*|\*\*$|\*$/g, '').trim();
-            } else if (!stats && (line.includes('|') || line.includes('kcal') || line.includes('cal') || line.includes('min') || /\b\d+\b/.test(line))) {
-                stats = line;
-            } else {
-                intro = (intro ? intro + " " : "") + line;
-            }
-        } else if (currentSection === "ingredients") {
-            if (line.startsWith('-') || line.startsWith('•') || line.startsWith('*')) {
-                ingredients.push(line.replace(/^[-•*]\s*/, '').trim());
-            } else if (/^\d+\.\s/.test(line)) {
-                ingredients.push(line.replace(/^\d+\.\s*/, '').trim());
-            } else {
-                ingredients.push(line);
-            }
-        } else if (currentSection === "steps") {
-            if (/^\d+\.\s/.test(line)) {
-                steps.push(line.replace(/^\d+\.\s*/, '').trim());
-            } else if (line.startsWith('-') || line.startsWith('•') || line.startsWith('*')) {
-                steps.push(line.replace(/^[-•*]\s*/, '').trim());
-            } else {
-                steps.push(line);
-            }
-        }
-    }
-
-    if (!title || ingredients.length === 0 || steps.length === 0) return null;
-
-    return {
-        title,
-        stats,
-        ingredients,
-        steps,
-        intro
-    };
-};
-
-const ChatMessage = ({ message, userInitial = 'C' }) => {
+function RecipeCard({ recipe }) {
     const router = useRouter()
-    const isAI = message.role === 'ai' || message.role === 'assistant'
+    const toast = useToast()
+    const { startCooking, planRecipe, saveRecipe, isFavourite, toggleFavourite, addShoppingItems } = useKitchenData()
+    const { addTimer } = useTimers()
+    const [open, setOpen] = useState(false)
+    const saved = isFavourite(recipe)
 
-    const handleCook = (recipe) => {
-        const data = { id: Date.now().toString(), ...recipe }
-        const saved = JSON.parse(localStorage.getItem('flavourai_recipes') || '[]')
-        if (!saved.some(r => r.name === data.name)) {
-            localStorage.setItem('flavourai_recipes', JSON.stringify([data, ...saved]))
-        }
-        localStorage.setItem('flavourai_cooking_recipe', JSON.stringify(data))
+    const stats = [
+        recipe.calories && { Icon: Flame, text: `${recipe.calories} kcal`, cls: 'text-rose-400 bg-rose-400/10' },
+        recipe.protein && { Icon: Zap, text: `${recipe.protein} protein`, cls: 'text-emerald-500 bg-emerald-500/10' },
+        recipe.time && { Icon: Clock, text: recipe.time, cls: 'text-orange-400 bg-orange-400/10' },
+    ].filter(Boolean)
+
+    const cook = () => {
+        startCooking(recipe)
         router.push('/kitchen/cook')
     }
 
-    const handlePlan = (recipe) => {
-        localStorage.setItem('flavourai_add_to_meal', JSON.stringify({
-            name: recipe.name, emoji: recipe.emoji,
-            calories: recipe.calories, time: recipe.time,
-            category: recipe.category || 'dinner',
-        }))
-        router.push('/kitchen/meal-plan')
+    const plan = () => {
+        const { slot } = planRecipe(recipe)
+        toast(`Added to today's ${slot.toLowerCase()}`, { action: { label: 'View', onClick: () => router.push('/kitchen/meal-plan') } })
     }
 
-    const handleSave = (recipe) => {
-        const data = { id: Date.now().toString(), ...recipe }
-        const saved = JSON.parse(localStorage.getItem('flavourai_recipes') || '[]')
-        if (!saved.some(r => r.name === data.name)) {
-            localStorage.setItem('flavourai_recipes', JSON.stringify([data, ...saved]))
-        }
+    const save = () => {
+        saveRecipe(recipe)
+        const added = toggleFavourite(recipe)
+        toast(added ? `Saved ${recipe.name}` : `Removed ${recipe.name} from favourites`, { type: added ? 'success' : 'info' })
     }
 
-    const formatContent = (text) => {
-        if (!text) return null
-        return text.split('\n').map((line, i) => {
-            const formatted = line
-                .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-[#10B981]">$1</strong>')
-                .replace(/\*(.+?)\*/g, '<em>$1</em>')
-                .replace(/`(.+?)`/g, '<code class="bg-[#1A271E] px-1.5 py-0.5 rounded text-[13px] font-mono text-[#34D399]">$1</code>')
-
-            if (line.startsWith('- ') || line.startsWith('• ')) {
-                return <li key={i} className="ml-4 list-disc text-sm text-gray-300 leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: formatted.replace(/^[-•]\s/, '') }} />
-            }
-            if (/^\d+\.\s/.test(line)) {
-                return <li key={i} className="ml-4 list-decimal text-sm text-gray-300 leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: formatted.replace(/^\d+\.\s/, '') }} />
-            }
-            if (line.trim() === '') return <br key={i} />
-            return <p key={i} className="text-sm text-gray-300 leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: formatted }} />
+    const shop = () => {
+        const n = addShoppingItems(recipe.ingredients, recipe.name)
+        toast(n ? `${n} item${n === 1 ? '' : 's'} added to your list` : 'Already on your list', {
+            type: n ? 'success' : 'info',
+            action: { label: 'Open', onClick: () => router.push('/kitchen/shopping') },
         })
     }
 
+    return (
+        <Tilt max={4} scale={1.005}>
+            <div className="group relative overflow-hidden rounded-[4px_20px_20px_20px] border border-[var(--border)] bg-[var(--bg-card)] shadow-[var(--shadow-card)]">
+                <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-br from-emerald-500/15 via-teal-400/5 to-transparent" aria-hidden="true" />
+
+                <div className="relative p-5">
+                    <div className="flex items-start gap-3">
+                        <motion.span
+                            initial={{ rotateY: -180, scale: 0.4 }}
+                            animate={{ rotateY: 0, scale: 1 }}
+                            transition={{ type: 'spring', stiffness: 180, damping: 14, delay: 0.1 }}
+                            className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[var(--bg-hover)] text-2xl shadow-inner"
+                            style={{ transformPerspective: 400 }}
+                        >
+                            {recipe.emoji}
+                        </motion.span>
+                        <div className="min-w-0 flex-1">
+                            <h3 className="text-base font-extrabold leading-snug text-[var(--text-main)]">{recipe.name}</h3>
+                            <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                {stats.map(({ Icon, text, cls }) => (
+                                    <span key={text} className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10.5px] font-bold ${cls}`}>
+                                        <Icon className="h-3 w-3" /> {text}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={save}
+                            aria-label={saved ? 'Remove from favourites' : 'Save to favourites'}
+                            aria-pressed={saved}
+                            className="rounded-xl p-2 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--brand)]"
+                        >
+                            {saved ? <BookmarkCheck className="h-4 w-4 text-[var(--brand)]" /> : <Bookmark className="h-4 w-4" />}
+                        </button>
+                    </div>
+
+                    {/* Ingredients as chips — scannable instead of a list */}
+                    <div className="mt-4 flex flex-wrap gap-1.5">
+                        {recipe.ingredients.map((ing, i) => (
+                            <motion.span
+                                key={ing}
+                                initial={{ opacity: 0, y: 6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.15 + i * 0.03 }}
+                                className="rounded-full border border-[var(--border)] bg-[var(--bg-base)] px-2.5 py-1 text-[11.5px] font-medium text-[var(--text-main)]"
+                            >
+                                {ing}
+                            </motion.span>
+                        ))}
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => setOpen((v) => !v)}
+                        aria-expanded={open}
+                        className="mt-4 flex w-full items-center justify-between rounded-xl bg-[var(--bg-hover)]/60 px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)] transition-colors hover:text-[var(--text-main)]"
+                    >
+                        {recipe.steps.length} steps
+                        <ChevronDown className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    <AnimatePresence initial={false}>
+                        {open && (
+                            <motion.ol
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                                className="overflow-hidden"
+                            >
+                                {recipe.steps.map((step, i) => {
+                                    const timers = parseDurations(step)
+                                    return (
+                                        <li key={i} className="flex gap-2.5 pt-2.5 text-[13px] leading-relaxed text-[var(--text-main)]">
+                                            <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[var(--brand)] text-[10px] font-bold text-black">{i + 1}</span>
+                                            <span className="flex-1">
+                                                {step}
+                                                {timers.map((d) => (
+                                                    <button
+                                                        key={d.label}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            addTimer({ label: `${recipe.name} · step ${i + 1}`, emoji: recipe.emoji, minutes: d.minutes, source: 'chat' })
+                                                            toast(`Timer started: ${d.label}`, { type: 'info' })
+                                                        }}
+                                                        className="ml-1.5 inline-flex items-center gap-1 rounded-md bg-[var(--brand-light)] px-1.5 py-0.5 align-middle text-[10.5px] font-bold text-[var(--brand)] hover:bg-[var(--brand)] hover:text-black"
+                                                    >
+                                                        <TimerIcon className="h-3 w-3" /> {d.label}
+                                                    </button>
+                                                ))}
+                                            </span>
+                                        </li>
+                                    )
+                                })}
+                            </motion.ol>
+                        )}
+                    </AnimatePresence>
+
+                    <div className="mt-4 grid grid-cols-[1fr_auto_auto] gap-2">
+                        <button type="button" onClick={cook} className="flex items-center justify-center gap-1.5 rounded-xl bg-[var(--brand)] py-2.5 text-xs font-bold text-black shadow-md shadow-emerald-500/20 transition-all hover:bg-[var(--brand-hover)] active:scale-[0.98]">
+                            <Play className="h-3.5 w-3.5 fill-current" /> Cook it
+                        </button>
+                        <button type="button" onClick={plan} aria-label="Add to today's plan" className="rounded-xl border border-[var(--border-light)] px-3 text-[var(--text-muted)] transition-colors hover:border-[var(--brand)] hover:text-[var(--brand)]">
+                            <CalendarPlus className="h-4 w-4" />
+                        </button>
+                        <button type="button" onClick={shop} aria-label="Add ingredients to shopping list" className="rounded-xl border border-[var(--border-light)] px-3 text-[var(--text-muted)] transition-colors hover:border-[var(--brand)] hover:text-[var(--brand)]">
+                            <ShoppingCart className="h-4 w-4" />
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Tilt>
+    )
+}
+
+function ChatMessage({ message, userInitial = 'C' }) {
+    const isAI = message.role === 'ai' || message.role === 'assistant'
+    const recipe = useMemo(() => (isAI ? parseRecipeText(message.content) : null), [isAI, message.content])
+
     if (!isAI) {
         return (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                className="flex justify-end gap-4 mb-6">
-                <div className="bg-[#10B981] text-[#070B09] font-semibold text-sm px-5 py-3 rounded-2xl rounded-tr-sm ml-auto max-w-[500px] shadow-sm leading-relaxed">
+            <motion.div {...enter} style={{ transformPerspective: 800, transformOrigin: '100% 100%' }} className="mb-6 flex justify-end gap-3">
+                <div className="max-w-[min(520px,85%)] whitespace-pre-wrap break-words rounded-[20px_4px_20px_20px] bg-gradient-to-br from-emerald-500 to-emerald-600 px-4 py-3 text-sm font-medium leading-relaxed text-white shadow-lg shadow-emerald-500/20">
                     {message.content}
                 </div>
-                <div className="w-8 h-8 rounded-full bg-[#10B981] text-[#070B09] flex items-center justify-center font-bold text-sm flex-shrink-0">
-                    {userInitial}
-                </div>
+                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--bg-hover)] text-sm font-bold text-[var(--brand)]">{userInitial}</div>
             </motion.div>
         )
     }
 
-    const parsedRecipe = parseRecipeText(message.content);
-
     return (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-            className="flex gap-4 mb-6">
-            <div className="w-8 h-8 rounded-full bg-[rgba(16,185,129,0.1)] text-[#10B981] flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
-                <Sparkles className="w-4 h-4 text-[#10B981]" />
-            </div>
-            <div className="flex-1 min-w-0 space-y-3 max-w-[700px]">
-                {parsedRecipe ? (
-                    <div className="bg-[#111A14] border border-[#1A271E] rounded-[0_16px_16px_16px] p-5 shadow-md space-y-4">
-                        <div className="flex justify-between items-start gap-4">
-                            <div className="space-y-1.5 flex-1">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xl">🍳</span>
-                                    <h3 className="font-bold text-gray-100 text-sm md:text-base leading-snug">
-                                        {parsedRecipe.title}
-                                    </h3>
-                                </div>
-                                {parsedRecipe.stats && (
-                                    <div className="flex flex-wrap gap-1.5 pt-0.5">
-                                        {parsedRecipe.stats.split('|').map((stat, idx) => {
-                                            const val = stat.trim();
-                                            let label = val;
-                                            if (idx === 0 && !val.toLowerCase().includes('kcal') && !val.toLowerCase().includes('cal')) label += ' kcal';
-                                            if (idx === 1 && !val.toLowerCase().includes('g') && !val.toLowerCase().includes('protein')) label += ' protein';
-                                            return (
-                                                <span key={idx} className="px-2.5 py-0.5 bg-[rgba(16,185,129,0.1)] text-[#10B981] rounded-md text-[10px] font-bold border border-[#10B981]/15">
-                                                    {label}
-                                                </span>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {parsedRecipe.intro && (
-                            <p className="text-xs text-[#829A8B] leading-relaxed italic">
-                                {parsedRecipe.intro}
-                            </p>
-                        )}
-
-                        <div className="space-y-2 border-t border-[#1A271E] pt-3">
-                            <h4 className="text-[10px] uppercase tracking-wider font-extrabold text-[#829A8B]">Ingredients</h4>
-                            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                                {parsedRecipe.ingredients.map((ing, idx) => (
-                                    <li key={idx} className="flex items-center gap-1.5 text-xs text-gray-300">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] flex-shrink-0" />
-                                        <span className="truncate">{ing}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-
-                        <div className="space-y-2.5 border-t border-[#1A271E] pt-3">
-                            <h4 className="text-[10px] uppercase tracking-wider font-extrabold text-[#829A8B]">Steps</h4>
-                            <div className="space-y-2">
-                                {parsedRecipe.steps.map((step, idx) => (
-                                    <div key={idx} className="flex gap-2.5 items-start text-xs text-gray-300">
-                                        <span className="w-4 h-4 rounded-full bg-[#10B981] text-[#070B09] flex items-center justify-center text-[9px] font-bold mt-0.5 flex-shrink-0">
-                                            {idx + 1}
-                                        </span>
-                                        <div className="flex flex-col">
-                                            <p className="leading-relaxed">
-                                                {typeof step === 'string' ? step : step.step || step.instruction || step.text}
-                                            </p>
-                                            {(typeof step !== 'string' && step.timeInMinutes) ? (
-                                                <span className="text-[10px] text-[#10B981] font-medium mt-1 w-fit bg-[rgba(16,185,129,0.1)] px-1.5 py-0.5 rounded border border-[rgba(16,185,129,0.2)]">
-                                                    🕒 {step.timeInMinutes} mins
-                                                </span>
-                                            ) : null}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="flex gap-2 border-t border-[#1A271E] pt-3">
-                            <button onClick={() => handleCook({
-                                    name: parsedRecipe.title,
-                                    emoji: '🍳',
-                                    time: parsedRecipe.stats ? (parsedRecipe.stats.split('|')[2] || '10m').trim() : '10m',
-                                    calories: parsedRecipe.stats ? parseInt(parsedRecipe.stats.split('|')[0]) || 200 : 200,
-                                    protein: parsedRecipe.stats ? (parsedRecipe.stats.split('|')[1] || '4g').trim() : '4g',
-                                    ingredients: parsedRecipe.ingredients,
-                                    steps: parsedRecipe.steps
-                                })}
-                                className="flex-1 flex items-center justify-center gap-1 bg-[#10B981] hover:bg-[#34D399] text-black text-xs font-semibold py-2 rounded-xl transition-all shadow-sm">
-                                <Play className="w-3.5 h-3.5 fill-current" /> Start Cooking
-                            </button>
-                            <button onClick={() => handlePlan({
-                                    name: parsedRecipe.title,
-                                    emoji: '🍳',
-                                    calories: parsedRecipe.stats ? parseInt(parsedRecipe.stats.split('|')[0]) || 200 : 200,
-                                    time: parsedRecipe.stats ? (parsedRecipe.stats.split('|')[2] || '10m').trim() : '10m',
-                                    category: 'dinner'
-                                })}
-                                className="flex-1 flex items-center justify-center gap-1 bg-[#1A271E] hover:bg-[#24362A] text-gray-200 text-xs font-semibold py-2 rounded-xl transition-all">
-                                <CalendarPlus className="w-3.5 h-3.5" /> Plan Meal
-                            </button>
-                            <button onClick={() => handleSave({
-                                    name: parsedRecipe.title,
-                                    emoji: '🍳',
-                                    time: parsedRecipe.stats ? (parsedRecipe.stats.split('|')[2] || '10m').trim() : '10m',
-                                    calories: parsedRecipe.stats ? parseInt(parsedRecipe.stats.split('|')[0]) || 200 : 200,
-                                    protein: parsedRecipe.stats ? (parsedRecipe.stats.split('|')[1] || '4g').trim() : '4g',
-                                    ingredients: parsedRecipe.ingredients,
-                                    steps: parsedRecipe.steps
-                                })}
-                                className="px-3 rounded-xl bg-[#1A271E] hover:bg-[#24362A] text-gray-400 hover:text-[#10B981] transition-colors flex items-center justify-center">
-                                <Bookmark className="w-4 h-4" />
-                            </button>
-                        </div>
-                    </div>
+        <motion.div {...enter} style={{ transformPerspective: 800, transformOrigin: '0% 100%' }} className="mb-6 flex gap-3">
+            <AIAvatar />
+            <div className="min-w-0 max-w-[680px] flex-1">
+                {recipe ? (
+                    <RecipeCard recipe={recipe} />
                 ) : (
-                    <div className="bg-[#111A14] border border-[#1A271E] rounded-[0_16px_16px_16px] px-5 py-4 shadow-sm">
-                        <div className="space-y-1">
-                            {formatContent(message.content)}
-                        </div>
-                    </div>
-                )}
-
-                {message.recipeCards?.length > 0 && (
-                    <div className="flex flex-wrap gap-2 pt-2">
-                        {message.recipeCards.map((recipe, i) => (
-                            <div key={i} className="bg-[#111A14] border border-[#1A271E] rounded-xl p-3 w-full sm:w-[calc(50%-4px)] hover:border-[#24362A] transition-all group">
-                                <div className="flex items-start gap-2.5 mb-2.5">
-                                    <span className="text-2xl">{recipe.emoji || '🍽️'}</span>
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className="text-sm font-semibold text-gray-100 truncate group-hover:text-[#10B981] transition-colors">{recipe.name}</h4>
-                                        <div className="flex items-center gap-2 mt-0.5">
-                                            <span className="text-[11px] text-[#829A8B]">{typeof recipe.time === 'number' ? recipe.time + ' min' : recipe.time}</span>
-                                            <span className="text-gray-600">·</span>
-                                            <span className="text-[11px] text-[#829A8B]">{recipe.calories} kcal</span>
-                                            <span className="text-gray-600">·</span>
-                                            <span className="text-[11px] text-[#829A8B]">{recipe.protein || `${Math.round((parseInt(recipe.calories) || 350) * 0.05)}g protein`}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex gap-1.5">
-                                    <button onClick={() => handleCook(recipe)}
-                                        className="flex-1 flex items-center justify-center gap-1 bg-[#10B981] hover:bg-[#34D399] text-black text-[11px] font-medium py-1.5 rounded-lg transition-colors">
-                                        <Play className="w-3 h-3 fill-current" /> Cook
-                                    </button>
-                                    <button onClick={() => handlePlan(recipe)}
-                                        className="flex-1 flex items-center justify-center gap-1 bg-[#1A271E] hover:bg-[#24362A] text-gray-300 text-[11px] font-medium py-1.5 rounded-lg transition-colors">
-                                        <CalendarPlus className="w-3 h-3" /> Plan
-                                    </button>
-                                    <button onClick={() => handleSave(recipe)}
-                                        className="p-1.5 rounded-lg bg-[#1A271E] hover:bg-[#24362A] text-gray-400 hover:text-[#10B981] transition-colors">
-                                        <Bookmark className="w-3 h-3" />
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+                    <div className={`space-y-2 rounded-[4px_20px_20px_20px] border px-4 py-3 shadow-[var(--shadow-card)] ${message.error ? 'border-rose-400/30 bg-rose-500/5' : 'border-[var(--border)] bg-[var(--bg-card)]'} text-[var(--text-main)]`}>
+                        {renderMarkdown(message.content)}
                     </div>
                 )}
             </div>
@@ -304,4 +209,4 @@ const ChatMessage = ({ message, userInitial = 'C' }) => {
     )
 }
 
-export default ChatMessage
+export default memo(ChatMessage)

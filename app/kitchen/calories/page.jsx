@@ -1,329 +1,309 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, X, Trash2, ChevronLeft, ChevronRight, Sparkles, Loader2, Target, Flame } from 'lucide-react'
-import { useGuestUser } from '@/context/GuestUserContext'
+import { Plus, Trash2, ChevronLeft, ChevronRight, Sparkles, Loader2, Target, Flame, X } from 'lucide-react'
+import MobileMenuButton from '@/components/Layout/MobileMenuButton'
+import ProgressRing from '@/components/ui/ProgressRing'
+import Modal from '@/components/ui/Modal'
+import { useKitchenData } from '@/context/KitchenDataContext'
+import { useToast } from '@/components/ui/Toaster'
 import { sendChatMessage } from '@/utils/api'
+import { useGuestQuota, isGuestLimitError } from '@/lib/guestQuota'
+import { addDays, parseDateKey } from '@/lib/date'
 
-const quickFoods = [
+const QUICK = [
     { name: 'Apple', emoji: '🍎', calories: 95 },
     { name: 'Banana', emoji: '🍌', calories: 105 },
     { name: 'Coffee', emoji: '☕', calories: 5 },
-    { name: 'Chicken Breast', emoji: '🍗', calories: 165 },
-    { name: 'Rice', emoji: '🍚', calories: 206 },
-    { name: 'Salad', emoji: '🥗', calories: 150 },
     { name: 'Egg', emoji: '🥚', calories: 78 },
+    { name: 'Rice bowl', emoji: '🍚', calories: 206 },
+    { name: 'Chicken', emoji: '🍗', calories: 165 },
+    { name: 'Salad', emoji: '🥗', calories: 150 },
     { name: 'Milk', emoji: '🥛', calories: 149 },
 ]
 
-const CaloriesPage = () => {
-    const { userId, isGuest } = useGuestUser()
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
-    const [dailyGoal, setDailyGoal] = useState(2000)
-    const [foodLog, setFoodLog] = useState({})
-    const [showAddModal, setShowAddModal] = useState(false)
-    const [foodName, setFoodName] = useState('')
-    const [foodCalories, setFoodCalories] = useState('')
-    const [foodPortion, setFoodPortion] = useState('')
-    const [isEstimating, setIsEstimating] = useState(false)
-    const [showGoalEdit, setShowGoalEdit] = useState(false)
-    const [goalInput, setGoalInput] = useState('')
+const GOALS = [1500, 1800, 2000, 2200, 2500]
 
-    useEffect(() => {
-        const saved = localStorage.getItem('flavourai_calories')
-        if (saved) setFoodLog(JSON.parse(saved))
-        const savedGoal = localStorage.getItem('flavourai_calorie_goal')
-        if (savedGoal) setDailyGoal(parseInt(savedGoal))
-    }, [])
+export default function CaloriesPage() {
+    const toast = useToast()
+    const quota = useGuestQuota()
+    const { today, caloriesFor, totalFor, addCalorieEntry, removeCalorieEntry, settings, updateSettings } = useKitchenData()
 
-    const saveLog = (updated) => {
-        setFoodLog(updated)
-        localStorage.setItem('flavourai_calories', JSON.stringify(updated))
+    const [offset, setOffset] = useState(0)
+    const [showAdd, setShowAdd] = useState(false)
+    const [showGoal, setShowGoal] = useState(false)
+    const [form, setForm] = useState({ name: '', portion: '', calories: '' })
+    const [estimating, setEstimating] = useState(false)
+
+    const selected = today ? addDays(today, offset) : null
+    const entries = selected ? caloriesFor(selected) : []
+    const total = selected ? totalFor(selected) : 0
+    const goal = settings.dailyCalorieGoal || 2000
+    const remaining = goal - total
+
+    const week = useMemo(() => {
+        if (!today) return []
+        return Array.from({ length: 7 }, (_, i) => {
+            const key = addDays(today, i - 6)
+            return { key, kcal: totalFor(key), label: parseDateKey(key).toLocaleDateString(undefined, { weekday: 'short' }) }
+        })
+    }, [today, totalFor])
+    const maxWeek = Math.max(goal, ...week.map((d) => d.kcal))
+    const avg = week.length ? Math.round(week.reduce((s, d) => s + d.kcal, 0) / week.filter((d) => d.kcal).length || 0) : 0
+
+    const dateLabel = !selected
+        ? ''
+        : offset === 0
+            ? 'Today'
+            : offset === -1
+                ? 'Yesterday'
+                : parseDateKey(selected).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
+
+    const quickAdd = (f) => {
+        addCalorieEntry({ name: f.name, calories: f.calories }, selected)
+        toast(`${f.emoji} ${f.name} · ${f.calories} kcal`)
     }
 
-    const addFood = (name, calories, portion) => {
-        const updated = { ...foodLog }
-        if (!updated[selectedDate]) updated[selectedDate] = []
-        updated[selectedDate].push({ id: Date.now(), name, calories: parseInt(calories), portion: portion || '1 serving', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })
-        saveLog(updated)
-    }
-
-    const deleteFood = (foodId) => {
-        const updated = { ...foodLog }
-        if (updated[selectedDate]) {
-            updated[selectedDate] = updated[selectedDate].filter(f => f.id !== foodId)
-            if (updated[selectedDate].length === 0) delete updated[selectedDate]
-            saveLog(updated)
-        }
-    }
-
-    const handleAIEstimate = async () => {
-        if (!foodName.trim()) return
-        setIsEstimating(true)
+    const estimate = async () => {
+        if (!form.name.trim() || estimating || !quota.guard()) return
+        setEstimating(true)
         try {
-            const response = await sendChatMessage(
-                `Estimate the calories in "${foodName}" ${foodPortion ? `(${foodPortion})` : '(1 serving)'}. Reply with ONLY a number, no other text.`,
-                []
-            )
-            const text = response.message || ''
-            const match = text.match(/\d+/)
-            if (match) setFoodCalories(match[0])
-        } catch (error) {
-            console.error('Error estimating calories:', error)
-        }
-        setIsEstimating(false)
-    }
-
-    const handleAddFood = () => {
-        const cals = parseInt(foodCalories)
-        if (foodName.trim() && cals > 0) {
-            addFood(foodName.trim(), cals, foodPortion.trim())
-            setFoodName('')
-            setFoodCalories('')
-            setFoodPortion('')
-            setShowAddModal(false)
+            const res = await sendChatMessage(form.name.trim(), [], { mode: 'estimate', portion: form.portion })
+            quota.record(res.quota)
+            if (res.success) {
+                setForm((f) => ({ ...f, calories: String(res.calories) }))
+            } else {
+                toast(res.message || 'Could not estimate that', { type: 'info' })
+            }
+        } catch (err) {
+            if (isGuestLimitError(err)) quota.exhaust()
+            else {
+                quota.record(err?.data?.quota)
+                toast(err.message, { type: 'error' })
+            }
+        } finally {
+            setEstimating(false)
         }
     }
 
-    const changeDate = (delta) => {
-        const d = new Date(selectedDate)
-        d.setDate(d.getDate() + delta)
-        setSelectedDate(d.toISOString().split('T')[0])
+    const submit = (e) => {
+        e.preventDefault()
+        const n = parseInt(form.calories, 10)
+        if (!form.name.trim() || !(n > 0)) return
+        addCalorieEntry({ name: form.name, calories: n, portion: form.portion.trim() || '1 serving' }, selected)
+        setForm({ name: '', portion: '', calories: '' })
+        setShowAdd(false)
     }
-
-    const todayFoods = foodLog[selectedDate] || []
-    const totalCalories = todayFoods.reduce((sum, f) => sum + f.calories, 0)
-    const remaining = dailyGoal - totalCalories
-    const progress = Math.min((totalCalories / dailyGoal) * 100, 100)
-    const circumference = 2 * Math.PI * 54
-    const isToday = selectedDate === new Date().toISOString().split('T')[0]
-
-    const getWeekData = () => {
-        const data = []
-        for (let i = 6; i >= 0; i--) {
-            const d = new Date()
-            d.setDate(d.getDate() - i)
-            const key = d.toISOString().split('T')[0]
-            const foods = foodLog[key] || []
-            const total = foods.reduce((sum, f) => sum + f.calories, 0)
-            data.push({ day: d.toLocaleDateString('en-US', { weekday: 'short' }), calories: total, date: key })
-        }
-        return data
-    }
-
-    const weekData = getWeekData()
-    const maxWeekCal = Math.max(...weekData.map(d => d.calories), dailyGoal)
-
-    const saveGoal = () => {
-        const g = parseInt(goalInput)
-        if (g > 0) {
-            setDailyGoal(g)
-            localStorage.setItem('flavourai_calorie_goal', g.toString())
-            setShowGoalEdit(false)
-        }
-    }
-
-    const dateLabel = isToday ? 'Today' : new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
 
     return (
-        <div className="flex flex-col h-screen relative overflow-hidden w-full bg-[var(--bg-base)] text-[var(--text-main)]">
-            <div className="relative z-10 flex flex-col h-full w-full">
-                {/* Unified Header */}
-                <div className="px-6 md:px-10 py-5 flex items-center justify-between flex-shrink-0 border-b border-[#1A271E] min-h-[72px] w-full">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center text-white shadow-lg shadow-orange-500/10 shrink-0">
-                            <Flame className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <h1 className="text-lg font-bold text-[#F3F4F6]">Calories</h1>
-                            <p className="text-[11px] text-[#829A8B]">Track your daily nutrition intake</p>
-                        </div>
+        <div className="flex h-dvh w-full flex-col overflow-hidden">
+            <header className="flex min-h-[64px] shrink-0 items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3 sm:px-6 md:px-10">
+                <div className="flex min-w-0 items-center gap-3">
+                    <MobileMenuButton />
+                    <div className="hidden h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-orange-500 to-rose-600 text-white shadow-lg shadow-orange-500/20 xs:grid">
+                        <Flame className="h-5 w-5" />
                     </div>
-                    <div className="flex items-center gap-2 bg-[#111A14] border border-[#1A271E] px-2 py-1 rounded-xl">
-                        <button onClick={() => changeDate(-1)} className="p-1.5 hover:bg-[#1A271E] rounded-lg transition-colors">
-                            <ChevronLeft className="w-4 h-4 text-[#829A8B]" />
-                        </button>
-                        <span className="text-[10px] font-extrabold text-[#F3F4F6] min-w-[100px] text-center uppercase tracking-wider">{dateLabel}</span>
-                        <button onClick={() => changeDate(1)} className="p-1.5 hover:bg-[#1A271E] rounded-lg transition-colors">
-                            <ChevronRight className="w-4 h-4 text-[#829A8B]" />
-                        </button>
-                    </div>
+                    <h1 className="text-lg font-extrabold text-[var(--text-main)]">Calories</h1>
                 </div>
+                <div className="flex items-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-1">
+                    <button type="button" onClick={() => setOffset((o) => o - 1)} aria-label="Previous day" className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)]">
+                        <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <span className="min-w-[96px] text-center text-[11px] font-extrabold uppercase tracking-wider text-[var(--text-main)]">{dateLabel}</span>
+                    <button type="button" onClick={() => setOffset((o) => Math.min(0, o + 1))} disabled={offset >= 0} aria-label="Next day" className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)] disabled:opacity-30">
+                        <ChevronRight className="h-4 w-4" />
+                    </button>
+                </div>
+            </header>
 
-                <div className="flex-1 overflow-y-auto elegant-scrollbar py-8 w-full">
-                    <div className="max-w-4xl mx-auto w-full px-6 md:px-10">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                            <div className="space-y-6">
-                                <div className="premium-card p-6 text-center">
-                                    <div className="relative w-36 h-36 mx-auto mb-4">
-                                        <svg className="w-full h-full transform -rotate-90">
-                                            <circle cx="72" cy="72" r="54" fill="none" strokeWidth="8" className="stroke-[#1A271E]" />
-                                            <circle cx="72" cy="72" r="54" fill="none" strokeWidth="8" strokeLinecap="round"
-                                                className={totalCalories > dailyGoal ? 'stroke-red-500' : 'stroke-[#10B981]'}
-                                                strokeDasharray={circumference} strokeDashoffset={circumference - (progress / 100) * circumference}
-                                                style={{ transition: 'stroke-dashoffset 0.5s ease' }} />
-                                        </svg>
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                            <span className={`text-2xl font-bold ${totalCalories > dailyGoal ? 'text-red-500' : 'text-[#F3F4F6]'}`}>{totalCalories}</span>
-                                            <span className="text-[10px] text-[#829A8B] uppercase tracking-wider font-extrabold">kcal</span>
-                                        </div>
-                                    </div>
-                                    <div className="flex justify-center gap-8 text-center border-t border-[#1A271E]/50 pt-4 mt-2">
-                                        <div>
-                                            <p className="text-base font-extrabold text-[#F3F4F6]">{dailyGoal}</p>
-                                            <p className="text-[9px] text-[#829A8B] uppercase font-bold tracking-widest mt-0.5">Goal</p>
-                                        </div>
-                                        <div>
-                                            <p className={`text-base font-extrabold ${remaining < 0 ? 'text-red-500' : 'text-[#10B981]'}`}>{Math.abs(remaining)}</p>
-                                            <p className="text-[9px] text-[#829A8B] uppercase font-bold tracking-widest mt-0.5">{remaining < 0 ? 'Over' : 'Left'}</p>
-                                        </div>
-                                    </div>
-                                    <button onClick={() => { setGoalInput(dailyGoal.toString()); setShowGoalEdit(true) }}
-                                        className="mt-4 flex items-center gap-1.5 mx-auto text-[10px] text-[#829A8B] hover:text-[#10B981] transition-colors uppercase tracking-widest font-extrabold">
-                                        <Target className="w-3.5 h-3.5" /> Edit goal
-                                    </button>
-                                </div>
-
-                                <div className="premium-card p-6">
-                                    <h3 className="text-xs font-bold text-[#829A8B] uppercase tracking-wider mb-5 pb-2 border-b border-[#1A271E]/50">7-Day Overview</h3>
-                                    <div className="flex items-end justify-between gap-2.5 h-28 pt-2">
-                                        {weekData.map((d) => (
-                                            <div key={d.date} className="flex flex-col items-center gap-1.5 flex-1 group cursor-pointer" onClick={() => setSelectedDate(d.date)}>
-                                                <span className="text-[8px] text-[#829A8B] font-extrabold opacity-0 group-hover:opacity-100 transition-opacity">{d.calories > 0 ? `${d.calories}` : ''}</span>
-                                                <div className="w-full relative" style={{ height: '72px' }}>
-                                                    <div className={`absolute bottom-0 w-full rounded-t-md transition-all duration-300 ${
-                                                        d.date === selectedDate 
-                                                            ? 'bg-[#10B981] shadow-lg shadow-emerald-500/20' 
-                                                            : d.calories > dailyGoal 
-                                                                ? 'bg-red-500/50 hover:bg-red-500/70' 
-                                                                : 'bg-[#1A271E] hover:bg-[#24362A]'
-                                                    }`}
-                                                    style={{ height: `${maxWeekCal > 0 ? Math.max((d.calories / maxWeekCal) * 100, d.calories > 0 ? 6 : 0) : 0}%` }} />
-                                                </div>
-                                                <span className={`text-[9px] font-extrabold uppercase tracking-wider transition-colors ${d.date === selectedDate ? 'text-[#10B981]' : 'text-[#829A8B] group-hover:text-white'}`}>{d.day.slice(0, 3)}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
+            <div className="flex-1 overflow-y-auto overscroll-contain py-6 elegant-scrollbar sm:py-8">
+                <div className="mx-auto grid max-w-4xl grid-cols-1 items-start gap-6 px-4 sm:px-6 md:px-10 lg:grid-cols-2">
+                    <div className="space-y-6">
+                        {/* Ring */}
+                        <motion.div
+                            initial={{ opacity: 0, rotateX: -20, y: 20 }}
+                            animate={{ opacity: 1, rotateX: 0, y: 0 }}
+                            transition={{ type: 'spring', stiffness: 200, damping: 22 }}
+                            style={{ transformPerspective: 900 }}
+                            className="premium-card relative overflow-hidden p-6 text-center"
+                        >
+                            <div className="pointer-events-none absolute -top-16 left-1/2 h-40 w-40 -translate-x-1/2 rounded-full bg-[var(--brand)]/15 blur-3xl" />
+                            <ProgressRing value={total / goal} size={168} stroke={12} className="mx-auto" label={`${total} of ${goal} calories`}>
+                                <motion.span key={total} initial={{ scale: 1.25, opacity: 0.4 }} animate={{ scale: 1, opacity: 1 }} className={`text-3xl font-extrabold tabular-nums ${remaining < 0 ? 'text-rose-400' : 'text-[var(--text-main)]'}`}>
+                                    {total.toLocaleString()}
+                                </motion.span>
+                                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[var(--text-muted)]">kcal</span>
+                            </ProgressRing>
+                            <div className="mt-5 grid grid-cols-3 divide-x divide-[var(--border)]">
+                                <Stat value={goal} label="Goal" />
+                                <Stat value={Math.abs(remaining)} label={remaining < 0 ? 'Over' : 'Left'} tone={remaining < 0 ? 'text-rose-400' : 'text-[var(--brand)]'} />
+                                <Stat value={avg || '—'} label="7-day avg" />
                             </div>
-                            <div className="space-y-6">
-                                <div className="premium-card p-6">
-                                    <h3 className="text-xs font-bold text-[#829A8B] uppercase tracking-wider mb-4 pb-2 border-b border-[#1A271E]/50">Quick Add</h3>
-                                    <div className="grid grid-cols-4 gap-2.5">
-                                        {quickFoods.map((food) => (
-                                            <button key={food.name} onClick={() => addFood(food.name, food.calories, '1 serving')}
-                                                className="flex flex-col items-center p-2.5 rounded-xl bg-[#1A271E]/30 hover:bg-[rgba(16,185,129,0.06)] hover:border-[#10B981]/40 border border-[#1A271E] transition-all text-center group active:scale-95 duration-200">
-                                                <span className="text-lg select-none group-hover:scale-110 transition-transform">{food.emoji}</span>
-                                                <span className="text-[10px] text-[#F3F4F6] mt-1.5 leading-tight font-extrabold truncate w-full">{food.name}</span>
-                                                <span className="text-[9px] text-[#10B981] font-bold mt-0.5">{food.calories} kcal</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <button onClick={() => setShowAddModal(true)}
-                                        className="w-full mt-4 py-3 bg-[#10B981] hover:bg-[#34D399] text-black font-extrabold rounded-xl transition-all active:scale-[0.98] text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/10">
-                                        <Plus className="w-4 h-4" /> Log Custom Food
-                                    </button>
-                                </div>
+                            <button type="button" onClick={() => setShowGoal(true)} className="mt-4 inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-widest text-[var(--text-muted)] transition-colors hover:text-[var(--brand)]">
+                                <Target className="h-3.5 w-3.5" /> Change goal
+                            </button>
+                        </motion.div>
 
-                                <div className="premium-card p-6">
-                                    <h3 className="text-xs font-bold text-[#829A8B] uppercase tracking-wider mb-4 pb-2 border-b border-[#1A271E]/50">Today&apos;s Log</h3>
-                                    {todayFoods.length === 0 ? (
-                                        <div className="py-6 text-center border border-dashed border-[#1A271E] rounded-xl bg-black/10">
-                                            <p className="text-[11px] text-[#829A8B]">No foods logged yet</p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-2 max-h-[280px] overflow-y-auto elegant-scrollbar pr-1">
-                                            <AnimatePresence>
-                                                {todayFoods.map((food) => (
-                                                    <motion.div key={food.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }}
-                                                        className="flex items-center justify-between p-3 rounded-xl bg-[#1A271E]/20 border border-[#1A271E] hover:border-[#24362A] hover:bg-[#1A271E]/40 transition-all group">
-                                                        <div className="flex-1 min-w-0 pr-3">
-                                                            <p className="text-[13px] text-[#F3F4F6] font-bold truncate">{food.name}</p>
-                                                            <p className="text-[10px] text-[#829A8B] uppercase font-bold tracking-wider mt-0.5">{food.portion} · {food.time}</p>
-                                                        </div>
-                                                        <div className="flex items-center gap-3">
-                                                            <span className="text-sm font-extrabold text-[#10B981]">{food.calories} kcal</span>
-                                                            <button onClick={() => deleteFood(food.id)}
-                                                                className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-500/10 rounded-lg transition-all">
-                                                                <Trash2 className="w-3.5 h-3.5 text-red-400/80 hover:text-red-400" />
-                                                            </button>
-                                                        </div>
-                                                    </motion.div>
-                                                ))}
-                                            </AnimatePresence>
-                                        </div>
-                                    )}
-                                </div>
+                        {/* 7-day bars against the goal line */}
+                        <div className="premium-card p-5">
+                            <p className="k-label">Last 7 days</p>
+                            <div className="relative flex h-32 items-end gap-2">
+                                <span className="absolute inset-x-0 border-t border-dashed border-[var(--brand)]/50" style={{ bottom: `${(goal / maxWeek) * 100}%` }} />
+                                {week.map((d, i) => {
+                                    const isSel = d.key === selected
+                                    return (
+                                        <button key={d.key} type="button" onClick={() => setOffset(i - 6)} className="group flex h-full flex-1 flex-col justify-end" aria-label={`${d.label}: ${d.kcal} kcal`}>
+                                            <span className="mb-1 text-center text-[9px] font-bold text-[var(--text-muted)] opacity-0 transition-opacity group-hover:opacity-100">{d.kcal || ''}</span>
+                                            <motion.span
+                                                initial={{ height: 0 }}
+                                                animate={{ height: `${Math.max(d.kcal ? 5 : 2, (d.kcal / maxWeek) * 100)}%` }}
+                                                transition={{ type: 'spring', stiffness: 120, damping: 18, delay: i * 0.05 }}
+                                                className={`block w-full rounded-t-lg ${isSel ? 'bg-gradient-to-t from-emerald-600 to-emerald-400 shadow-lg shadow-emerald-500/25' : d.kcal > goal ? 'bg-rose-400/60' : 'bg-[var(--border-light)] group-hover:bg-[var(--brand)]/50'}`}
+                                            />
+                                        </button>
+                                    )
+                                })}
                             </div>
+                            <div className="mt-2 flex gap-2">
+                                {week.map((d) => (
+                                    <span key={d.key} className={`flex-1 text-center text-[9px] font-extrabold uppercase ${d.key === selected ? 'text-[var(--brand)]' : 'text-[var(--text-muted)]'}`}>{d.label.slice(0, 2)}</span>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-6">
+                        <div className="premium-card p-5">
+                            <p className="k-label">Quick add</p>
+                            <div className="grid grid-cols-4 gap-2">
+                                {QUICK.map((f, i) => (
+                                    <motion.button
+                                        key={f.name}
+                                        type="button"
+                                        onClick={() => quickAdd(f)}
+                                        initial={{ opacity: 0, rotateY: 90 }}
+                                        animate={{ opacity: 1, rotateY: 0 }}
+                                        transition={{ delay: i * 0.04 }}
+                                        whileHover={{ y: -3 }}
+                                        whileTap={{ scale: 0.9 }}
+                                        style={{ transformPerspective: 500 }}
+                                        className="flex flex-col items-center rounded-xl border border-[var(--border)] bg-[var(--bg-base)] p-2 transition-colors hover:border-[var(--brand)]"
+                                    >
+                                        <span className="text-xl">{f.emoji}</span>
+                                        <span className="mt-1 w-full truncate text-[10px] font-bold text-[var(--text-main)]">{f.name}</span>
+                                        <span className="text-[9px] font-bold text-[var(--brand)]">{f.calories}</span>
+                                    </motion.button>
+                                ))}
+                            </div>
+                            <button type="button" onClick={() => setShowAdd(true)} className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl bg-[var(--brand)] py-3 text-xs font-extrabold uppercase tracking-wider text-black shadow-md shadow-emerald-500/15 transition-all hover:bg-[var(--brand-hover)] active:scale-[0.98]">
+                                <Plus className="h-4 w-4" /> Log food
+                            </button>
+                        </div>
+
+                        <div className="premium-card p-5">
+                            <p className="k-label">{dateLabel}&apos;s log</p>
+                            {entries.length === 0 ? (
+                                <p className="rounded-xl border border-dashed border-[var(--border-light)] py-6 text-center text-[11px] text-[var(--text-muted)]">Nothing logged</p>
+                            ) : (
+                                <ul className="max-h-[300px] space-y-1.5 overflow-y-auto pr-1 elegant-scrollbar">
+                                    <AnimatePresence initial={false}>
+                                        {entries.map((e) => (
+                                            <motion.li
+                                                key={e.id}
+                                                layout
+                                                initial={{ opacity: 0, x: -12 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                exit={{ opacity: 0, x: 20 }}
+                                                className="group flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg-base)] px-3 py-2.5"
+                                            >
+                                                <span className="min-w-0 pr-3">
+                                                    <span className="block truncate text-[13px] font-bold text-[var(--text-main)]">{e.name}</span>
+                                                    <span className="block text-[10px] font-semibold text-[var(--text-muted)]">{[e.portion, e.time].filter(Boolean).join(' · ')}</span>
+                                                </span>
+                                                <span className="flex items-center gap-2">
+                                                    <span className="text-sm font-extrabold text-[var(--brand)]">{e.calories}</span>
+                                                    <button type="button" onClick={() => removeCalorieEntry(e.id, selected)} aria-label={`Delete ${e.name}`} className="rounded-lg p-1.5 text-[var(--text-muted)] opacity-0 transition-opacity hover:bg-rose-500/10 hover:text-rose-400 focus-visible:opacity-100 group-hover:opacity-100">
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </span>
+                                            </motion.li>
+                                        ))}
+                                    </AnimatePresence>
+                                </ul>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
 
-            <AnimatePresence>
-                {showAddModal && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowAddModal(false)}>
-                        <motion.div initial={{ opacity: 0, scale: 0.95, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 16 }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="bg-[#0B120E] border border-[#24362A] rounded-2xl w-full max-w-md p-6 shadow-2xl">
-                            <h2 className="text-base font-bold text-[#F3F4F6] mb-4">Log Food</h2>
-                            <div className="space-y-3">
-                                <input type="text" placeholder="Food name" value={foodName} onChange={(e) => setFoodName(e.target.value)}
-                                    className="w-full p-3 bg-[#111A14] border border-[#1A271E] rounded-xl text-sm text-[#F3F4F6] placeholder-[#829A8B] outline-none focus:border-[#10B981] transition-colors" autoFocus />
-                                <input type="text" placeholder="Portion (e.g. 1 cup, 200g)" value={foodPortion} onChange={(e) => setFoodPortion(e.target.value)}
-                                    className="w-full p-3 bg-[#111A14] border border-[#1A271E] rounded-xl text-sm text-[#F3F4F6] placeholder-[#829A8B] outline-none focus:border-[#10B981] transition-colors" />
-                                <div className="flex gap-2">
-                                    <input type="number" placeholder="Calories" value={foodCalories} onChange={(e) => setFoodCalories(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleAddFood()}
-                                        className="flex-1 p-3 bg-[#111A14] border border-[#1A271E] rounded-xl text-sm text-[#F3F4F6] placeholder-[#829A8B] outline-none focus:border-[#10B981] transition-colors" />
-                                    <button onClick={handleAIEstimate} disabled={isEstimating || !foodName.trim()}
-                                        className="px-4 py-2.5 bg-[rgba(16,185,129,0.1)] hover:bg-[rgba(16,185,129,0.2)] rounded-xl text-sm font-bold text-[#10B981] transition-colors disabled:opacity-30 flex items-center gap-1.5">
-                                        {isEstimating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />} AI
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="flex gap-2.5 mt-4">
-                                <button onClick={() => setShowAddModal(false)}
-                                    className="flex-1 py-2.5 bg-[#1A271E] text-[#F3F4F6] font-bold rounded-xl hover:bg-[#24362A] transition-colors text-sm">Cancel</button>
-                                <button onClick={handleAddFood} disabled={!foodName.trim() || !foodCalories}
-                                    className="flex-1 py-2.5 bg-[#10B981] hover:bg-[#34D399] text-black font-bold rounded-xl disabled:opacity-40 transition-colors text-sm">Add Food</button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Log food">
+                <form onSubmit={submit} className="space-y-2.5">
+                    <Field value={form.name} onChange={(v) => setForm((f) => ({ ...f, name: v }))} placeholder="What did you eat?" autoFocus />
+                    <Field value={form.portion} onChange={(v) => setForm((f) => ({ ...f, portion: v }))} placeholder="Portion (e.g. 1 cup)" />
+                    <div className="flex gap-2">
+                        <Field value={form.calories} onChange={(v) => setForm((f) => ({ ...f, calories: v.replace(/\D/g, '') }))} placeholder="kcal" inputMode="numeric" />
+                        <button type="button" onClick={estimate} disabled={!form.name.trim() || estimating} className="flex shrink-0 items-center gap-1.5 rounded-xl bg-[var(--brand-light)] px-4 text-sm font-bold text-[var(--brand)] transition-colors hover:bg-[var(--brand)] hover:text-black disabled:opacity-40">
+                            {estimating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} AI
+                        </button>
+                    </div>
+                    <button type="submit" disabled={!form.name.trim() || !form.calories} className="w-full rounded-xl bg-[var(--brand)] py-3 text-sm font-bold text-black transition-colors hover:bg-[var(--brand-hover)] disabled:opacity-40">
+                        Add
+                    </button>
+                </form>
+            </Modal>
 
-            <AnimatePresence>
-                {showGoalEdit && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowGoalEdit(false)}>
-                        <motion.div initial={{ opacity: 0, scale: 0.95, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 16 }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="bg-[#0B120E] border border-[#24362A] rounded-2xl w-full max-w-sm p-6 shadow-2xl">
-                            <h2 className="text-base font-bold text-[#F3F4F6] mb-4">Daily Calorie Goal</h2>
-                            <input type="number" placeholder="Calories" value={goalInput} onChange={(e) => setGoalInput(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && saveGoal()}
-                                className="w-full p-3 bg-[#111A14] border border-[#1A271E] rounded-xl text-sm text-[#F3F4F6] placeholder-[#829A8B] outline-none focus:border-[#10B981] mb-3 transition-colors" autoFocus />
-                            <div className="flex flex-wrap gap-1.5 mb-4">
-                                {[1500, 2000, 2500, 3000].map(val => (
-                                    <button key={val} onClick={() => setGoalInput(val.toString())}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${goalInput === val.toString() ? 'bg-[#10B981] text-black' : 'bg-[#1A271E] text-[#829A8B] hover:text-[#10B981]'}`}>{val}</button>
-                                ))}
-                            </div>
-                            <div className="flex gap-2.5">
-                                <button onClick={() => setShowGoalEdit(false)}
-                                    className="flex-1 py-2.5 bg-[#1A271E] text-[#F3F4F6] font-bold rounded-xl hover:bg-[#24362A] transition-colors text-sm">Cancel</button>
-                                <button onClick={saveGoal}
-                                    className="flex-1 py-2.5 bg-[#10B981] hover:bg-[#34D399] text-black font-bold rounded-xl transition-colors text-sm">Save</button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            <Modal open={showGoal} onClose={() => setShowGoal(false)} title="Daily goal">
+                <div className="grid grid-cols-5 gap-2">
+                    {GOALS.map((g) => (
+                        <button
+                            key={g}
+                            type="button"
+                            onClick={() => {
+                                updateSettings({ dailyCalorieGoal: g })
+                                setShowGoal(false)
+                            }}
+                            className={`rounded-xl py-3 text-xs font-bold transition-all active:scale-95 ${goal === g ? 'bg-[var(--brand)] text-black' : 'bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
+                        >
+                            {g}
+                        </button>
+                    ))}
+                </div>
+                <form
+                    className="mt-3 flex gap-2"
+                    onSubmit={(e) => {
+                        e.preventDefault()
+                        const n = parseInt(new FormData(e.currentTarget).get('goal'), 10)
+                        if (n >= 800 && n <= 6000) {
+                            updateSettings({ dailyCalorieGoal: n })
+                            setShowGoal(false)
+                        }
+                    }}
+                >
+                    <input name="goal" inputMode="numeric" placeholder="Custom (800–6000)" className="flex-1 rounded-xl border border-[var(--border-light)] bg-[var(--bg-base)] px-3 py-2.5 text-sm text-[var(--text-main)] outline-none focus:border-[var(--brand)]" />
+                    <button type="submit" className="rounded-xl bg-[var(--brand)] px-4 text-sm font-bold text-black">Set</button>
+                </form>
+            </Modal>
         </div>
     )
 }
 
-export default CaloriesPage
+function Stat({ value, label, tone = 'text-[var(--text-main)]' }) {
+    return (
+        <div>
+            <p className={`text-base font-extrabold tabular-nums ${tone}`}>{typeof value === 'number' ? value.toLocaleString() : value}</p>
+            <p className="mt-0.5 text-[9px] font-bold uppercase tracking-widest text-[var(--text-muted)]">{label}</p>
+        </div>
+    )
+}
+
+function Field({ value, onChange, ...rest }) {
+    return (
+        <input
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full rounded-xl border border-[var(--border-light)] bg-[var(--bg-base)] p-3 text-sm text-[var(--text-main)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--brand)]"
+            {...rest}
+        />
+    )
+}

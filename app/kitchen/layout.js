@@ -1,12 +1,27 @@
 "use client"
 
-import { KitchenThemeProvider } from '@/context/KitchenThemeContext';
-import MainLayout from '@/components/Layout/MainLayout';
+import './kitchen.css'
+import { KitchenThemeProvider } from '@/context/KitchenThemeContext'
+import { KitchenDataProvider } from '@/context/KitchenDataContext'
+import { TimersProvider } from '@/context/TimersContext'
+import { ToastProvider } from '@/components/ui/Toaster'
+import CommandPalette from '@/components/ui/CommandPalette'
+import PremiumLayout from '@/components/Layout/PremiumLayout'
+import TimerDock from '@/components/ui/TimerDock'
 
 export default function KitchenLayout({ children }) {
     return (
         <KitchenThemeProvider>
-            <MainLayout>{children}</MainLayout>
+            <KitchenDataProvider>
+                <ToastProvider>
+                    <TimersProvider>
+                        <PremiumLayout>{children}</PremiumLayout>
+                        {/* Overlays live outside the shell so they sit above everything. */}
+                        <TimerDock />
+                        <CommandPalette />
+                    </TimersProvider>
+                </ToastProvider>
+            </KitchenDataProvider>
         </KitchenThemeProvider>
-    );
+    )
 }

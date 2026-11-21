@@ -1,9 +1,10 @@
 "use client"
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { usePathname } from 'next/navigation';
 
 const KitchenThemeContext = createContext();
+const THEME_EVENT = 'flavour:theme';
 
 export const useKitchenTheme = () => {
     const context = useContext(KitchenThemeContext);
@@ -13,65 +14,59 @@ export const useKitchenTheme = () => {
     return context;
 };
 
+// The root layout's inline script applies the dark-by-default migration before
+// first paint; this only has to mirror what's stored.
+const subscribe = (callback) => {
+    window.addEventListener(THEME_EVENT, callback);
+    window.addEventListener('storage', callback);
+    return () => {
+        window.removeEventListener(THEME_EVENT, callback);
+        window.removeEventListener('storage', callback);
+    };
+};
+
+const readTheme = () => {
+    try {
+        return localStorage.getItem('kitchen-theme') === 'light' ? 'light' : 'dark';
+    } catch {
+        return 'dark';
+    }
+};
+
 export const KitchenThemeProvider = ({ children }) => {
-    const [theme, setThemeState] = useState('dark');
+    const theme = useSyncExternalStore(subscribe, readTheme, () => 'dark');
     const pathname = usePathname();
 
+    // <html> carries the class too, so portals and the global gate modal match.
     useEffect(() => {
-        try {
-            if (typeof window !== 'undefined') {
-                const defaultApplied = localStorage.getItem('kitchen-theme-default-dark-v1');
-                if (!defaultApplied) {
-                    localStorage.setItem('kitchen-theme', 'dark');
-                    localStorage.setItem('kitchen-theme-default-dark-v1', '1');
-                    setThemeState('dark');
-                    return;
-                }
-
-                const savedTheme = localStorage.getItem('kitchen-theme');
-                if (savedTheme === 'light') {
-                    setThemeState('light');
-                } else {
-                    setThemeState('dark');
-                }
-            }
-        } catch (e) {}
-    }, []);
-    useEffect(() => {
-        try {
-            const isHomePage = pathname === '/';
-            if (theme === 'dark' && !isHomePage) {
-                document.documentElement.classList.add('dark');
-                document.documentElement.style.colorScheme = 'dark';
-            } else {
-                document.documentElement.classList.remove('dark');
-                document.documentElement.style.colorScheme = 'light';
-            }
-        } catch (e) {}
+        const root = document.documentElement;
+        const dark = theme === 'dark' && pathname !== '/';
+        root.classList.toggle('dark', dark);
+        root.style.colorScheme = dark ? 'dark' : 'light';
 
         return () => {
-            try {
-                document.documentElement.classList.remove('dark');
-                document.documentElement.style.colorScheme = 'light';
-            } catch (e) {}
+            root.classList.remove('dark');
+            root.style.colorScheme = 'light';
         };
     }, [theme, pathname]);
 
-    const setTheme = (value) => {
-        setThemeState(value);
+    const setTheme = useCallback((value) => {
         try {
             localStorage.setItem('kitchen-theme', value);
             localStorage.setItem('kitchen-theme-selected', '1');
-        } catch (e) {}
-    };
+        } catch {
+            // storage blocked — the toggle just won't persist
+        }
+        window.dispatchEvent(new CustomEvent(THEME_EVENT));
+    }, []);
 
-    const toggleTheme = () => {
-        setTheme(theme === 'dark' ? 'light' : 'dark');
-    };
+    const toggleTheme = useCallback(() => setTheme(readTheme() === 'dark' ? 'light' : 'dark'), [setTheme]);
+
+    const value = useMemo(() => ({ theme, setTheme, toggleTheme, mounted: true }), [theme, setTheme, toggleTheme]);
 
     return (
-        <KitchenThemeContext.Provider value={{ theme, setTheme, toggleTheme, mounted: true }}>
-            <div className={theme === 'dark' ? 'dark' : ''}>{children}</div>
+        <KitchenThemeContext.Provider value={value}>
+            <div className={`kitchen-root${theme === 'dark' ? ' dark' : ''}`}>{children}</div>
         </KitchenThemeContext.Provider>
     );
 };

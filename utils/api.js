@@ -1,25 +1,27 @@
+import { KEYS, readJSON } from '@/lib/store/local'
+
 const API_BASE_URL = typeof window !== 'undefined'
     ? '/api'
     : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api');
 
+const AUTH_KEYS = ['token', 'userId', 'username', 'userEmail'];
+
+const triggerAuthChanged = () => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent('flavour:auth-changed'));
+};
+
 export const clearAuthStorage = () => {
     if (typeof window === 'undefined') return;
-
     try {
-        localStorage.removeItem('token');
-        localStorage.removeItem('userId');
-        localStorage.removeItem('username');
-        localStorage.removeItem('userEmail');
-        window.dispatchEvent(new CustomEvent('flavour:auth-changed'));
-    } catch (e) {
+        AUTH_KEYS.forEach((k) => localStorage.removeItem(k));
+    } catch {
         // ignore storage errors
     }
+    triggerAuthChanged();
 };
 
-const isUserAuth = () => {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem('authType') === 'user';
-};
+const isUserAuth = () => typeof window !== 'undefined' && localStorage.getItem('authType') === 'user';
 
 const triggerSessionExpired = () => {
     if (typeof window === 'undefined') return;
@@ -64,347 +66,127 @@ const handleAuthFailure = (rejectedToken) => {
     return pendingExpiryCheck;
 };
 
-const triggerAuthChanged = () => {
-    if (typeof window === 'undefined') return;
-    window.dispatchEvent(new CustomEvent('flavour:auth-changed'));
-};
+/**
+ * fetch wrapper. Errors carry `status` and the parsed body as `data`, so
+ * callers can branch on structured codes (e.g. GUEST_LIMIT) instead of
+ * matching message strings.
+ */
+const apiCall = async (endpoint, options = {}) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const headers = { 'Content-Type': 'application/json', ...options.headers };
+    if (token) headers.Authorization = `Bearer ${token}`;
 
-const apiCall = async (endpoint, options = {}) =>{
-    try{
-        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-        const headers = {
-            'Content-Type': 'application/json',
-            ...options.headers
-        };
-
-        if(token){
-            headers['Authorization'] = `Bearer ${token}`;
-        }
-
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-            ...options,
-            headers
-        });
-
-        const contentType = response.headers.get('content-type') || '';
-        const isJson = contentType.includes('application/json');
-        const isAuthLoginOrSignup = endpoint.startsWith('/auth/login') || endpoint.startsWith('/auth/signup');
-
-        // If the token expired or is invalid on protected routes, clear local auth data and redirect to login
-        if (response.status === 401 && typeof window !== 'undefined' && !isAuthLoginOrSignup) {
-            handleAuthFailure(token);
-        }
-
-        if (!response.ok) {
-            let errMsg = response.status === 401 ? 'Unauthorized' : `Request failed (${response.status})`;
-            if (isJson) {
-                try {
-                    const errData = await response.json();
-                    errMsg = errData?.message || errMsg;
-                } catch {
-                    // Ignore JSON parsing errors
-                }
-            }
-            
-            // Create a custom error object that retains the status code
-            const error = new Error(errMsg);
-            error.status = response.status;
-            throw error;
-        }
-
-        if (isJson) {
-            return await response.json();
-        }
-
-        return { success: true };
+    let response;
+    try {
+        response = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers });
     } catch (error) {
-        const status = error?.status;
-        if (status === undefined || status >= 500) {
-            console.error(`API call error [${endpoint}]:`, error);
-        }
-        
-        // Handle specific fetch errors (e.g. network partition)
-        if (error instanceof TypeError && /fetch/i.test(error.message || '')) {
-            throw new Error(`Unable to reach API at ${API_BASE_URL}. Make sure backend is running.`);
-        }
-        
+        console.error(`API call error [${endpoint}]:`, error);
+        throw new Error('Can’t reach the server. Check your connection and try again.');
+    }
+
+    const isJson = (response.headers.get('content-type') || '').includes('application/json');
+    const data = isJson ? await response.json().catch(() => null) : null;
+    const isAuthLoginOrSignup = endpoint.startsWith('/auth/login') || endpoint.startsWith('/auth/signup');
+
+    if (response.status === 401 && !isAuthLoginOrSignup) handleAuthFailure(token);
+
+    if (!response.ok) {
+        const error = new Error(data?.message || (response.status === 401 ? 'Unauthorized' : `Request failed (${response.status})`));
+        error.status = response.status;
+        error.data = data;
+        if (response.status >= 500) console.error(`API call error [${endpoint}]:`, error.message);
         throw error;
     }
+
+    return data ?? { success: true };
 };
 
-export const signupUser = async (userData) => {
-    return await apiCall('/auth/signup', {
+/* ── Auth ─────────────────────────────────────────────────── */
+
+export const signupUser = (userData) =>
+    apiCall('/auth/signup', { method: 'POST', body: JSON.stringify(userData) });
+
+export const loginUser = (credentials) =>
+    apiCall('/auth/login', {
         method: 'POST',
-        body: JSON.stringify(userData)
-    });
-};
-
-export const loginUser = async (credentials) => {
-    return await apiCall('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({
-            emailOrUsername: credentials.email,
-            password: credentials.password
-        })
-    });
-};
-
-export const getCurrentUser = async () => {
-    return await apiCall('/auth/me', {
-        method: 'GET'
-    });
-};
-
-export const getUserProfile = async (userId) => {
-    return await apiCall(`/users/profile/${userId}`, {
-        method: 'GET'
-    });
-};
-
-export const updateUserProfile = async (profileData) =>{
-    return await apiCall('/users/profile', {
-        method: 'PUT',
-        body: JSON.stringify(profileData)
-    });
-};
-
-export const uploadProfilePicture = async (file) => {
-    const formData = new FormData();
-    formData.append('profilePicture', file);
-
-    const token = localStorage.getItem('token');
-
-    const response = await fetch(`${API_BASE_URL}/users/pfp`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${token}`
-        },
-        body: formData
+        body: JSON.stringify({ emailOrUsername: credentials.email, password: credentials.password }),
     });
 
-    return await response.json();
-};
+export const getCurrentUser = () => apiCall('/auth/me', { method: 'GET' });
 
-export const createRecipe = async (recipeData) => {
-    return await apiCall('/recipes', {
-        method: 'POST',
-        body: JSON.stringify(recipeData)
-    });
-};
-
-export const getUserRecipes = async () => {
-    return await apiCall('/recipes', {
-        method: 'GET'
-    });
-};
-
-export const getRecipeById = async (recipeId) => {
-    return await apiCall(`/recipes/${recipeId}`, {
-        method: 'GET'
-    });
-};
-
-export const deleteRecipe = async (recipeId) => {
-    return await apiCall(`/recipes/${recipeId}`, {
-        method: 'DELETE'
-    });
-};
-
-export const uploadRecipeImage = async (file) => {
-    const formData = new FormData();
-    formData.append('recipeImage', file);
-
-    const token = localStorage.getItem('token');
-
-    const response = await fetch(`${API_BASE_URL}/recipes/upload`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${token}`
-        },
-        body: formData
-    });
-
-    return await response.json();
-};
+export const updateUserProfile = (profileData) =>
+    apiCall('/users/profile', { method: 'PUT', body: JSON.stringify(profileData) });
 
 export const saveUserData = (data) => {
-    if (typeof window !== 'undefined') {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('userId', data._id);
-        localStorage.setItem('username', data.username);
-        localStorage.setItem('userEmail', data.email);
-        localStorage.setItem('authType', 'user');
-        triggerAuthChanged();
-    }
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('userId', data._id);
+    localStorage.setItem('username', data.username);
+    localStorage.setItem('userEmail', data.email);
+    localStorage.setItem('authType', 'user');
+    triggerAuthChanged();
 };
 
 export const getUserData = () => {
-    if (typeof window !== 'undefined') {
-        return {
-            token: localStorage.getItem('token'),
-            userId: localStorage.getItem('userId'),
-            username: localStorage.getItem('username'),
-            email: localStorage.getItem('userEmail')
-        };
-    }
-    return null;
+    if (typeof window === 'undefined') return null;
+    return {
+        token: localStorage.getItem('token'),
+        userId: localStorage.getItem('userId'),
+        username: localStorage.getItem('username'),
+        email: localStorage.getItem('userEmail'),
+    };
 };
 
 export const clearUserData = () => {
-    if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
-        localStorage.removeItem('userId');
-        localStorage.removeItem('username');
-        localStorage.removeItem('userEmail');
-        localStorage.setItem('authType', 'guest');
-        triggerAuthChanged();
-    }
+    if (typeof window === 'undefined') return;
+    AUTH_KEYS.forEach((k) => localStorage.removeItem(k));
+    localStorage.setItem('authType', 'guest');
+    triggerAuthChanged();
 };
 
-export const isAuthenticated = () => {
-    if (typeof window !== 'undefined') {
-        return !!localStorage.getItem('token');
-    }
-    return false;
+export const isAuthenticated = () => typeof window !== 'undefined' && !!localStorage.getItem('token');
+
+export const getAuthType = () => (typeof window === 'undefined' ? null : localStorage.getItem('authType'));
+
+/* ── Recipes (server copy, signed-in users) ───────────────── */
+
+export const createRecipe = (recipeData) =>
+    apiCall('/recipes', { method: 'POST', body: JSON.stringify(recipeData) });
+
+export const getUserRecipes = () => apiCall('/recipes', { method: 'GET' });
+
+export const getRecipeById = (recipeId) => apiCall(`/recipes/${recipeId}`, { method: 'GET' });
+
+export const deleteRecipe = (recipeId) => apiCall(`/recipes/${recipeId}`, { method: 'DELETE' });
+
+/* ── AI ───────────────────────────────────────────────────── */
+
+// Diet, allergies, skill and units from Settings ride along with every AI
+// call, so a vegan never gets offered carbonara whichever feature they use.
+const preferences = () => {
+    const s = readJSON(KEYS.settings, null);
+    if (!s) return undefined;
+    return { diet: s.diet, avoid: s.avoid, skill: s.skill, units: s.units, maxCookTime: s.maxCookTime };
 };
 
-export const createCookingSession = async (recipeId, userId, guestId) => {
-    return await apiCall('/cooking-sessions', {
+/**
+ * @param {string} message
+ * @param {Array}  history  [{ role, content }]
+ * @param {{ mode?: 'chat'|'estimate'|'plan', portion?: string }} options
+ */
+export const sendChatMessage = (message, history = [], options = {}) =>
+    apiCall('/chat', {
         method: 'POST',
-        body: JSON.stringify({ recipeId, userId, guestId })
+        body: JSON.stringify({ message, history, mode: options.mode || 'chat', portion: options.portion, preferences: preferences() }),
     });
-};
 
-export const getCookingSession = async (sessionId) => {
-    return await apiCall(`/cooking-sessions/${sessionId}`, {
-        method: 'GET'
-    });
-};
-
-export const getSessions = async (userId, guestId) => {
-    const params = new URLSearchParams();
-    if (userId) params.append('userId', userId);
-    if (guestId) params.append('guestId', guestId);
-    
-    return await apiCall(`/cooking-sessions?${params.toString()}`, {
-        method: 'GET'
-    });
-};
-
-export const updateCookingSession = async (sessionId, data) => {
-    return await apiCall(`/cooking-sessions/${sessionId}`, {
-        method: 'PUT',
-        body: JSON.stringify(data)
-    });
-};
-
-export const markStepComplete = async (sessionId, stepNumber) => {
-    return await apiCall(`/cooking-sessions/${sessionId}/steps/${stepNumber}`, {
-        method: 'PUT'
-    });
-};
-
-
-export const createMealPlan = async (userId, guestId, weekOf) => {
-    return await apiCall('/meal-plans', {
+export const generateRecipe = (ingredients) =>
+    apiCall('/chat/generate-recipe', {
         method: 'POST',
-        body: JSON.stringify({ userId, guestId, weekOf })
+        body: JSON.stringify({ ingredients, preferences: preferences() }),
     });
-};
 
-export const getMealPlan = async (userId, guestId, weekOf) => {
-    const params = new URLSearchParams();
-    if (userId) params.append('userId', userId);
-    if (guestId) params.append('guestId', guestId);
-    if (weekOf) params.append('weekOf', weekOf);
-    
-    return await apiCall(`/meal-plans?${params.toString()}`, {
-        method: 'GET'
-    });
-};
-
-export const updateMealPlan = async (planId, meals) => {
-    return await apiCall(`/meal-plans/${planId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ meals })
-    });
-};
-
-export const addMealToPlan = async (planId, mealData) => {
-    return await apiCall(`/meal-plans/${planId}/meals`, {
-        method: 'POST',
-        body: JSON.stringify(mealData)
-    });
-};
-
-export const deleteMealFromPlan = async (planId, mealId) => {
-    return await apiCall(`/meal-plans/${planId}/meals/${mealId}`, {
-        method: 'DELETE'
-    });
-};
-
-export const markMealComplete = async (planId, mealId, completed) => {
-    return await apiCall(`/meal-plans/${planId}/meals/${mealId}/complete`, {
-        method: 'PUT',
-        body: JSON.stringify({ completed })
-    });
-};
-
-export const logFood = async (userId, guestId, date, food) => {
-    return await apiCall('/calories/log', {
-        method: 'POST',
-        body: JSON.stringify({ userId, guestId, date, food })
-    });
-};
-
-export const getFoodLog = async (userId, guestId, date) => {
-    const params = new URLSearchParams();
-    if (userId) params.append('userId', userId);
-    if (guestId) params.append('guestId', guestId);
-    if (date) params.append('date', date);
-    
-    return await apiCall(`/calories/log?${params.toString()}`, {
-        method: 'GET'
-    });
-};
-
-export const deleteFood = async (logId, foodId) => {
-    return await apiCall(`/calories/log/${logId}/food/${foodId}`, {
-        method: 'DELETE'
-    });
-};
-
-export const updateCalorieGoal = async (userId, guestId, date, dailyGoal) => {
-    return await apiCall('/calories/goal', {
-        method: 'PUT',
-        body: JSON.stringify({ userId, guestId, date, dailyGoal })
-    });
-};
-
-export const getWeeklyCalories = async (userId, guestId, startDate) => {
-    const params = new URLSearchParams();
-    if (userId) params.append('userId', userId);
-    if (guestId) params.append('guestId', guestId);
-    if (startDate) params.append('startDate', startDate);
-    
-    return await apiCall(`/calories/weekly?${params.toString()}`, {
-        method: 'GET'
-    });
-};
-
-export const sendChatMessage = async (message, history) => {
-    return await apiCall('/chat', {
-        method: 'POST',
-        body: JSON.stringify({ message, history })
-    });
-};
-
-export const generateRecipe = async (ingredients, userId, guestId) => {
-    return await apiCall('/chat/generate-recipe', {
-        method: 'POST',
-        body: JSON.stringify({ ingredients, userId, guestId })
-    });
-};
+/* ── Token expiry ─────────────────────────────────────────── */
 
 // Decode JWT payload and return milliseconds until expiry (or null)
 export const getTokenExpiryMs = (token) => {
@@ -412,19 +194,11 @@ export const getTokenExpiryMs = (token) => {
         if (!token) return null;
         const parts = token.split('.');
         if (parts.length < 2) return null;
-        const payload = parts[1];
-        // base64url -> base64 with padding
-        let b64 = payload.replace(/-/g, '+').replace(/_/g, '/');
-        while (b64.length % 4 !== 0) {
-            b64 += '=';
-        }
-
-        const json = atob(b64);
-        const obj = JSON.parse(json);
-        if (!obj.exp) return null;
-        const ms = obj.exp * 1000 - Date.now();
-        return ms;
-    } catch (e) {
+        let b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        while (b64.length % 4 !== 0) b64 += '=';
+        const obj = JSON.parse(atob(b64));
+        return obj.exp ? obj.exp * 1000 - Date.now() : null;
+    } catch {
         return null;
     }
 };
@@ -433,7 +207,6 @@ export const getTokenExpiryMs = (token) => {
 export const scheduleAutoLogout = (opts = { redirectTo: '/login' }) => {
     if (typeof window === 'undefined') return;
     try {
-        // clear any existing timer
         if (window.__flavour_logout_timer) {
             clearTimeout(window.__flavour_logout_timer);
             window.__flavour_logout_timer = null;
@@ -449,20 +222,14 @@ export const scheduleAutoLogout = (opts = { redirectTo: '/login' }) => {
             return;
         }
 
-        // set timer to fire a little after expiry; re-check on fire since the token may have
-        // been replaced, and cap it because setTimeout overflows past ~24.8 days
+        // Re-check on fire since the token may have been replaced, and cap it
+        // because setTimeout overflows past ~24.8 days.
         const timeout = Math.min(Math.max(1000, ms + 500), 2147483647);
         window.__flavour_logout_timer = setTimeout(() => {
             window.__flavour_logout_timer = null;
             scheduleAutoLogout(opts);
         }, timeout);
-    } catch (e) {
+    } catch {
         // ignore
     }
 };
-
-export const getAuthType = () => {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem('authType');
-};
-
