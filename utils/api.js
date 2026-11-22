@@ -180,6 +180,16 @@ export const sendChatMessage = (message, history = [], options = {}) =>
         body: JSON.stringify({ message, history, mode: options.mode || 'chat', portion: options.portion, preferences: preferences() }),
     });
 
+/**
+ * Plan breakfast/lunch/dinner for several days from the vegetables on hand.
+ * @param {{ vegetables: string[], staples: string[], days: string[] }} plan
+ */
+export const planWeekFromVegetables = ({ vegetables, staples, days }) =>
+    apiCall('/chat/plan-week', {
+        method: 'POST',
+        body: JSON.stringify({ vegetables, staples, days, preferences: preferences() }),
+    });
+
 export const generateRecipe = (ingredients) =>
     apiCall('/chat/generate-recipe', {
         method: 'POST',
