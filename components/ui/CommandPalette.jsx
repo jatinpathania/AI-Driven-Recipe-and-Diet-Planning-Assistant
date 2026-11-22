@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import {
+import { Carrot,
     Search, MessageSquare, BookOpen, Calendar, ChefHat, Timer, Flame,
     Heart, ShoppingCart, Settings, User, CornerDownLeft, ArrowUp, ArrowDown, Play,
 } from 'lucide-react'
@@ -30,6 +30,7 @@ const NAV = [
     { id: 'recipes', label: 'Recipes', hint: 'Your saved recipe library', icon: BookOpen, href: '/kitchen/recipes' },
     { id: 'favourites', label: 'Favourites', hint: 'Recipes you starred', icon: Heart, href: '/kitchen/favourites' },
     { id: 'meal-plan', label: 'Meal Plan', hint: 'Plan the week', icon: Calendar, href: '/kitchen/meal-plan' },
+    { id: 'veg-planner', label: 'Week Planner', hint: 'Plan meals from the vegetables you bought', icon: Carrot, href: '/kitchen/veg-planner' },
     { id: 'shopping', label: 'Shopping List', hint: 'What to buy', icon: ShoppingCart, href: '/kitchen/shopping' },
     { id: 'cook', label: 'Cook Mode', hint: 'Step-by-step guidance', icon: ChefHat, href: '/kitchen/cook' },
     { id: 'timer', label: 'Timers', hint: 'Run cooking timers', icon: Timer, href: '/kitchen/timer' },
