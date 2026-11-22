@@ -7,7 +7,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-    BookOpen, Calendar, ChefHat, Flame, Heart, MessageSquare, Play, Search, Settings, ShoppingCart, Timer, X, LogIn, Sparkles,
+    BookOpen, Calendar, Carrot, ChefHat, Flame, Heart, MessageSquare, Play, Search, Settings, ShoppingCart, Timer, X, LogIn, Sparkles,
 } from 'lucide-react'
 import { getCurrentUser, getUserData } from '@/utils/api'
 import { useGuestUser } from '@/context/GuestUserContext'
@@ -22,6 +22,7 @@ const MAIN_NAV = [
     { href: '/kitchen/recipes', label: 'Recipes', Icon: BookOpen },
     { href: '/kitchen/favourites', label: 'Favourites', Icon: Heart, badge: 'favourites' },
     { href: '/kitchen/meal-plan', label: 'Meal Plan', Icon: Calendar },
+    { href: '/kitchen/veg-planner', label: 'Week Planner', Icon: Carrot },
     { href: '/kitchen/cook', label: 'Cook', Icon: ChefHat, badge: 'cook' },
 ]
 
