@@ -1,9 +1,10 @@
 "use client"
 
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useEffectEvent, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Check, ChevronLeft, ChevronRight, Loader2, Trash2, Calendar, Wand2, ShoppingCart, Flame } from 'lucide-react'
+import { Plus, Check, ChevronLeft, ChevronRight, Loader2, Trash2, Calendar, Wand2, ShoppingCart, Flame, Carrot, Pencil, ChefHat } from 'lucide-react'
 import MobileMenuButton from '@/components/Layout/MobileMenuButton'
 import { useKitchenData, MEAL_SLOTS, SLOT_EMOJI } from '@/context/KitchenDataContext'
 import { useToast } from '@/components/ui/Toaster'
@@ -11,7 +12,7 @@ import ProgressRing from '@/components/ui/ProgressRing'
 import Tilt from '@/components/ui/Tilt'
 import { sendChatMessage } from '@/utils/api'
 import { useGuestQuota, isGuestLimitError } from '@/lib/guestQuota'
-import { weekKeys, parseDateKey, dayName } from '@/lib/date'
+import { weekKeys, parseDateKey, dayName, startOfWeek } from '@/lib/date'
 
 const totalKcal = (day) => MEAL_SLOTS.reduce((s, slot) => s + (day[slot] || []).reduce((n, m) => n + (m.calories || 0), 0), 0)
 const countMeals = (day) => MEAL_SLOTS.reduce((s, slot) => s + (day[slot]?.length || 0), 0)
@@ -20,11 +21,24 @@ export default function MealPlanPage() {
     const router = useRouter()
     const toast = useToast()
     const quota = useGuestQuota()
-    const { today, mealsFor, addMeal, addMeals, removeMeal, toggleMeal, ingredientsForDays, addShoppingItems, settings } = useKitchenData()
+    const { today, mealsFor, addMeal, addMeals, updateMeal, removeMeal, toggleMeal, ingredientsForDays, addShoppingItems, settings } = useKitchenData()
 
     const [weekOffset, setWeekOffset] = useState(0)
     const [picked, setPicked] = useState(null)
     const [filling, setFilling] = useState(false)
+
+    // /kitchen/meal-plan?date=YYYY-MM-DD (from the week planner) opens that day.
+    const openDateFromUrl = useEffectEvent(() => {
+        const d = new URLSearchParams(window.location.search).get('date')
+        if (!today || !d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return
+        const weeks = Math.round((parseDateKey(startOfWeek(d)) - parseDateKey(startOfWeek(today))) / (7 * 86400000))
+        setWeekOffset(weeks)
+        setPicked(d)
+        window.history.replaceState(null, '', '/kitchen/meal-plan')
+    })
+    useEffect(() => {
+        openDateFromUrl()
+    }, [today])
 
     const week = useMemo(() => (today ? weekKeys(weekOffset, today) : []), [today, weekOffset])
     // Default selection: today on this week, Monday on any other.
@@ -94,6 +108,9 @@ export default function MealPlanPage() {
                         <Calendar className="h-5 w-5" />
                     </div>
                     <h1 className="text-lg font-extrabold text-[var(--text-main)]">Meal Plan</h1>
+                    <Link href="/kitchen/veg-planner" className="ml-1 hidden items-center gap-1.5 rounded-xl border border-orange-400/40 bg-orange-400/10 px-3 py-1.5 text-[11px] font-bold text-orange-500 transition-colors hover:border-orange-400 sm:flex">
+                        <Carrot className="h-3.5 w-3.5" /> Plan from my vegetables
+                    </Link>
                 </div>
                 <div className="flex items-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-1">
                     <button type="button" onClick={() => setWeekOffset((w) => w - 1)} aria-label="Previous week" className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)]">
@@ -175,6 +192,8 @@ export default function MealPlanPage() {
                                         slot={slot}
                                         meals={day[slot] || []}
                                         onAdd={(name) => addMeal(selected, slot, name)}
+                                        onEdit={(id, patch) => updateMeal(selected, slot, id, patch)}
+                                        onRecipe={(meal) => router.push(`/kitchen?ask=${encodeURIComponent(`Give me a recipe for ${meal.name}${meal.uses?.length ? ` using ${meal.uses.join(', ')}` : ''}`)}`)}
                                         onToggle={(id) => toggleMeal(selected, slot, id)}
                                         onRemove={(id) => removeMeal(selected, slot, id)}
                                     />
@@ -233,7 +252,7 @@ export default function MealPlanPage() {
     )
 }
 
-function SlotCard({ slot, meals, onAdd, onToggle, onRemove, index }) {
+function SlotCard({ slot, meals, onAdd, onToggle, onRemove, onEdit, onRecipe, index }) {
     const [adding, setAdding] = useState(false)
     const [draft, setDraft] = useState('')
 
@@ -296,32 +315,14 @@ function SlotCard({ slot, meals, onAdd, onToggle, onRemove, index }) {
                         <ul className="space-y-1.5">
                             <AnimatePresence initial={false}>
                                 {meals.map((meal) => (
-                                    <motion.li
+                                    <MealRow
                                         key={meal.id}
-                                        layout
-                                        initial={{ opacity: 0, x: -10 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: 20, height: 0 }}
-                                        className={`group flex items-center gap-2.5 rounded-xl border px-2.5 py-2 ${meal.completed ? 'border-[var(--brand)]/20 bg-[var(--brand-light)]' : 'border-[var(--border)] bg-[var(--bg-base)]'}`}
-                                    >
-                                        <button
-                                            type="button"
-                                            onClick={() => onToggle(meal.id)}
-                                            role="checkbox"
-                                            aria-checked={meal.completed}
-                                            aria-label={`Mark ${meal.name} eaten`}
-                                            className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border transition-all ${meal.completed ? 'border-[var(--brand)] bg-[var(--brand)]' : 'border-[var(--border-light)] hover:border-[var(--brand)]'}`}
-                                        >
-                                            {meal.completed && <Check className="h-3 w-3 stroke-[3] text-black" />}
-                                        </button>
-                                        <span className={`min-w-0 flex-1 truncate text-[13px] font-semibold ${meal.completed ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text-main)]'}`}>
-                                            {meal.emoji && <span className="mr-1">{meal.emoji}</span>}{meal.name}
-                                        </span>
-                                        {meal.calories ? <span className="text-[10.5px] font-bold text-[var(--text-muted)]">{meal.calories}</span> : null}
-                                        <button type="button" onClick={() => onRemove(meal.id)} aria-label={`Remove ${meal.name}`} className="rounded-md p-1 text-[var(--text-muted)] opacity-0 transition-opacity hover:text-rose-400 focus-visible:opacity-100 group-hover:opacity-100">
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                        </button>
-                                    </motion.li>
+                                        meal={meal}
+                                        onToggle={() => onToggle(meal.id)}
+                                        onRemove={() => onRemove(meal.id)}
+                                        onEdit={(patch) => onEdit(meal.id, patch)}
+                                        onRecipe={() => onRecipe(meal)}
+                                    />
                                 ))}
                             </AnimatePresence>
                         </ul>
@@ -329,5 +330,89 @@ function SlotCard({ slot, meals, onAdd, onToggle, onRemove, index }) {
                 </div>
             </Tilt>
         </motion.div>
+    )
+}
+
+/** One planned meal: tick to log it, pencil to rename / change kcal, chef hat for its recipe. */
+function MealRow({ meal, onToggle, onRemove, onEdit, onRecipe }) {
+    const [editing, setEditing] = useState(false)
+    const [name, setName] = useState(meal.name)
+    const [kcal, setKcal] = useState(meal.calories ? String(meal.calories) : '')
+
+    const startEdit = () => {
+        setName(meal.name)
+        setKcal(meal.calories ? String(meal.calories) : '')
+        setEditing(true)
+    }
+
+    const save = (e) => {
+        e.preventDefault()
+        if (name.trim()) onEdit({ name, calories: kcal })
+        setEditing(false)
+    }
+
+    return (
+        <motion.li
+            layout
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20, height: 0 }}
+            className={`group rounded-xl border px-2.5 py-2 ${meal.completed ? 'border-[var(--brand)]/20 bg-[var(--brand-light)]' : 'border-[var(--border)] bg-[var(--bg-base)]'}`}
+        >
+            {editing ? (
+                <form onSubmit={save} className="flex items-center gap-1.5">
+                    <input
+                        autoFocus
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Escape' && setEditing(false)}
+                        aria-label="Meal name"
+                        className="min-w-0 flex-1 rounded-lg border border-[var(--border-light)] bg-[var(--bg-card)] px-2 py-1 text-[13px] text-[var(--text-main)] outline-none focus:border-[var(--brand)]"
+                    />
+                    <input
+                        value={kcal}
+                        onChange={(e) => setKcal(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                        inputMode="numeric"
+                        placeholder="kcal"
+                        aria-label="Calories"
+                        className="w-14 rounded-lg border border-[var(--border-light)] bg-[var(--bg-card)] px-2 py-1 text-[12px] text-[var(--text-main)] outline-none focus:border-[var(--brand)]"
+                    />
+                    <button type="submit" aria-label="Save meal" className="rounded-lg bg-[var(--brand)] p-1.5 text-black">
+                        <Check className="h-3.5 w-3.5 stroke-[3]" />
+                    </button>
+                </form>
+            ) : (
+                <div className="flex items-center gap-2.5">
+                    <button
+                        type="button"
+                        onClick={onToggle}
+                        role="checkbox"
+                        aria-checked={meal.completed}
+                        aria-label={`Mark ${meal.name} eaten`}
+                        className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border transition-all ${meal.completed ? 'border-[var(--brand)] bg-[var(--brand)]' : 'border-[var(--border-light)] hover:border-[var(--brand)]'}`}
+                    >
+                        {meal.completed && <Check className="h-3 w-3 stroke-[3] text-black" />}
+                    </button>
+                    <span className="min-w-0 flex-1">
+                        <span className={`block truncate text-[13px] font-semibold ${meal.completed ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text-main)]'}`}>
+                            {meal.emoji && <span className="mr-1">{meal.emoji}</span>}{meal.name}
+                        </span>
+                        {meal.uses?.length > 0 && <span className="block truncate text-[10.5px] text-[var(--text-muted)]">🥕 {meal.uses.join(', ')}</span>}
+                    </span>
+                    {meal.calories ? <span className="text-[10.5px] font-bold text-[var(--text-muted)]">{meal.calories}</span> : null}
+                    <span className="flex items-center opacity-60 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                        <button type="button" onClick={onRecipe} aria-label={`Get the recipe for ${meal.name}`} title="Get the recipe" className="rounded-md p-1 text-[var(--text-muted)] hover:text-[var(--brand)]">
+                            <ChefHat className="h-3.5 w-3.5" />
+                        </button>
+                        <button type="button" onClick={startEdit} aria-label={`Edit ${meal.name}`} className="rounded-md p-1 text-[var(--text-muted)] hover:text-[var(--text-main)]">
+                            <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button type="button" onClick={onRemove} aria-label={`Remove ${meal.name}`} className="rounded-md p-1 text-[var(--text-muted)] hover:text-rose-400">
+                            <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                    </span>
+                </div>
+            )}
+        </motion.li>
     )
 }
