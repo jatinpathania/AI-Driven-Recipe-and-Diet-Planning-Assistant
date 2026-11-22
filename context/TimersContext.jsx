@@ -62,9 +62,18 @@ export function TimersProvider({ children }) {
         }
     }, [anyRunning, toast])
 
-    const addTimer = useCallback(({ label, emoji = '⏱️', minutes = 0, seconds = 0, autoStart = true, source = 'manual' }) => {
+    /**
+     * `ref` is an optional stable name (e.g. "cook:<recipe>:step:2:8 min") so
+     * a caller can find or clear its own timers later. Adding a timer whose
+     * ref already exists returns the existing id instead of a duplicate.
+     */
+    const addTimer = useCallback(({ label, emoji = '⏱️', minutes = 0, seconds = 0, autoStart = true, source = 'manual', ref = null }) => {
         const totalMs = Math.round((Number(minutes) * 60 + Number(seconds)) * 1000)
         if (!(totalMs > 0)) return null
+        if (ref) {
+            const existing = (readSnapshot(KEYS.timers, EMPTY) || []).find((x) => x.ref === ref)
+            if (existing) return existing.id
+        }
         if (autoStart) primeAudio()
 
         const timer = {
@@ -72,6 +81,7 @@ export function TimersProvider({ children }) {
             label: String(label || `${Math.round(totalMs / 60000)} min timer`).slice(0, 60),
             emoji,
             source,
+            ...(ref ? { ref: String(ref).slice(0, 160) } : {}),
             totalMs,
             remainingMs: totalMs,
             endsAt: autoStart ? Date.now() + totalMs : null,
@@ -79,6 +89,12 @@ export function TimersProvider({ children }) {
         }
         edit((list) => [timer, ...list].slice(0, 12))
         return timer.id
+    }, [])
+
+    /** Remove every timer whose ref starts with `prefix` (e.g. one recipe's timers). */
+    const removeTimersByRef = useCallback((prefix) => {
+        if (!prefix) return
+        edit((list) => list.filter((x) => !(x.ref && x.ref.startsWith(prefix))))
     }, [])
 
     const pauseTimer = useCallback((id) => {
@@ -120,9 +136,9 @@ export function TimersProvider({ children }) {
         () => ({
             timers: view,
             running: view.filter((x) => x.state === 'running'),
-            addTimer, pauseTimer, resumeTimer, resetTimer, removeTimer, clearDone,
+            addTimer, pauseTimer, resumeTimer, resetTimer, removeTimer, removeTimersByRef, clearDone,
         }),
-        [view, addTimer, pauseTimer, resumeTimer, resetTimer, removeTimer, clearDone]
+        [view, addTimer, pauseTimer, resumeTimer, resetTimer, removeTimer, removeTimersByRef, clearDone]
     )
 
     return <TimersContext.Provider value={value}>{children}</TimersContext.Provider>
