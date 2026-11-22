@@ -4,7 +4,7 @@ import React, { useEffect, useEffectEvent, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-    ArrowLeft, ArrowRight, Check, Play, Pause, Utensils, ChefHat, Minus, Plus, Timer as TimerIcon, Printer, Lightbulb, X, RotateCcw, Clock,
+    ArrowLeft, ArrowRight, Check, Play, Pause, Utensils, ChefHat, Minus, Plus, Timer as TimerIcon, Printer, Lightbulb, X, RotateCcw, Clock, Lock,
 } from 'lucide-react'
 import MobileMenuButton from '@/components/Layout/MobileMenuButton'
 import ProgressRing from '@/components/ui/ProgressRing'
@@ -18,10 +18,17 @@ import useWakeLock from '@/lib/hooks/useWakeLock'
 // Recipes don't record their yield, so 2 is the assumed base for scaling.
 const BASE_SERVINGS = 2
 
+/** Whole-recipe time: the stated time, else the sum of the timed steps. */
+const totalMinutesFor = (recipe) => {
+    if (recipe?.minutes > 0) return recipe.minutes
+    const sum = (recipe?.steps || []).reduce((s, step) => s + parseDurations(step).reduce((n, d) => n + d.minutes, 0), 0)
+    return sum > 0 ? Math.round(sum) : 0
+}
+
 export default function CookPage() {
     const toast = useToast()
-    const { activeRecipe, cookProgress, updateCookProgress, finishCooking, settings, hydrated } = useKitchenData()
-    const { timers, addTimer, pauseTimer, resumeTimer, removeTimer } = useTimers()
+    const { activeRecipe, cookProgress, updateCookProgress, finishCooking, settings, updateSettings, hydrated } = useKitchenData()
+    const { timers, addTimer, pauseTimer, resumeTimer, removeTimer, removeTimersByRef } = useTimers()
 
     const recipe = activeRecipe ? normalizeRecipe(activeRecipe) : null
     const steps = recipe?.steps || []
@@ -30,6 +37,36 @@ export default function CookPage() {
     const current = Math.min(progress?.step || 0, Math.max(0, steps.length - 1))
     const doneList = progress?.done
     const done = useMemo(() => new Set(doneList || []), [doneList])
+
+    // Every timer this cook session starts carries a ref under this prefix, so
+    // the page can show "its" timers and clear them on Finish / Start over.
+    const refBase = recipe ? `cook:${recipe.key}:` : ''
+    const stepRef = (i, d) => `${refBase}step:${i}:${d.label}`
+    const autoTimers = settings.autoStepTimers !== false
+    const totalMinutes = totalMinutesFor(recipe)
+    const totalTimer = timers.find((t) => t.ref === `${refBase}total`)
+
+    // Optional chaining: this is defined before the "no recipe" early return,
+    // and the React Compiler may read its captured values while rendering.
+    const startStepTimer = (i, d) =>
+        addTimer({ label: `Step ${i + 1} · ${d.label}`, emoji: recipe?.emoji || '🍳', minutes: d.minutes, source: 'cook', ref: stepRef(i, d) })
+
+    // Arriving at a timed step starts its timer once (tracked in `timed`, so
+    // going back to a step, or reloading the page, never restarts it).
+    const autoStartStep = useEffectEvent(() => {
+        if (!recipe || !autoTimers) return
+        const timed = Array.isArray(progress?.timed) ? progress.timed : []
+        if (timed.includes(current)) return
+        const durations = parseDurations(steps[current])
+        if (!durations.length) return
+        durations.forEach((d) => startStepTimer(current, d))
+        updateCookProgress({ timed: [...timed, current] })
+        toast(`Step ${current + 1} timer started: ${durations.map((d) => d.label).join(' + ')}`, { type: 'info' })
+    })
+
+    useEffect(() => {
+        if (cooking) autoStartStep()
+    }, [cooking, current, autoTimers])
 
     const [servings, setServings] = useState(BASE_SERVINGS)
     const [keepAwake, setKeepAwake] = useState(true)
@@ -69,11 +106,49 @@ export default function CookPage() {
         if (!wasDone && i === current && i < steps.length - 1) goTo(i + 1)
     }
 
+    /* ── Step gate ──────────────────────────────────────────
+       You can't move past a step until it's complete: marked done, or all of
+       its timers have run out. Finished timers are recorded in `cleared`, so
+       clearing them from the timer list later doesn't lock the step again.
+       Going back is always allowed.                                      */
+    const clearedList = progress?.cleared
+    const cleared = useMemo(() => new Set(clearedList || []), [clearedList])
+
+    const timersFinished = (i) => {
+        const durations = parseDurations(steps[i])
+        return durations.length > 0 && durations.every((d) => timers.find((t) => t.ref === stepRef(i, d))?.state === 'done')
+    }
+    const stepComplete = (i) => done.has(i) || cleared.has(i) || timersFinished(i)
+    const isLast = current >= steps.length - 1
+    const canNext = !isLast && stepComplete(current)
+    // A later step is reachable only if every step before it, from here, is complete.
+    const canReach = (i) => {
+        if (i <= current) return true
+        for (let j = current; j < i; j++) if (!stepComplete(j)) return false
+        return true
+    }
+
+    const next = () => {
+        if (canNext) goTo(current + 1)
+    }
+
+    const doneTimerRefs = timers
+        .filter((t) => t.state === 'done' && refBase && t.ref?.startsWith(`${refBase}step:`))
+        .map((t) => t.ref)
+        .join('|')
+    const recordCleared = useEffectEvent(() => {
+        const newly = steps.map((_, i) => i).filter((i) => !cleared.has(i) && timersFinished(i))
+        if (newly.length) updateCookProgress({ cleared: [...cleared, ...newly] })
+    })
+    useEffect(() => {
+        if (cooking && doneTimerRefs) recordCleared()
+    }, [cooking, doneTimerRefs])
+
     // Hands-free-ish: ← → move between steps, space ticks the current one.
     // useEffectEvent always sees the latest step without re-binding the listener.
     const onKey = useEffectEvent((e) => {
         if (e.target.closest?.('input, textarea, button')) return
-        if (e.key === 'ArrowRight') goTo(current + 1)
+        if (e.key === 'ArrowRight') next()
         if (e.key === 'ArrowLeft') goTo(current - 1)
         if (e.key === ' ') {
             e.preventDefault()
@@ -89,13 +164,27 @@ export default function CookPage() {
 
     if (!hydrated) return <div className="flex h-dvh w-full" />
 
-    const start = () =>
-        updateCookProgress({ key: recipe.key, total: steps.length, startedAt: new Date().toISOString(), finishedAt: null, step: 0, done: [] })
+    // These run before the "no recipe" early return below. The React Compiler
+    // caches each handler keyed on the recipe fields it reads, and reads those
+    // keys while rendering, so every access here must be null-safe (`recipe?.`).
+    const start = () => {
+        removeTimersByRef(refBase) // leftovers from an earlier attempt at this recipe
+        updateCookProgress({ key: recipe?.key, total: steps.length, startedAt: new Date().toISOString(), finishedAt: null, step: 0, done: [], timed: [], cleared: [] })
+        if (totalMinutes > 0) {
+            addTimer({ label: `${recipe?.name} · ready`, emoji: recipe?.emoji, minutes: totalMinutes, source: 'cook', ref: `${refBase}total` })
+        }
+    }
+
+    const startOver = () => {
+        removeTimersByRef(refBase)
+        updateCookProgress({ startedAt: null, step: 0, done: [], timed: [], cleared: [] })
+    }
 
     const finish = () => {
+        removeTimersByRef(refBase)
         finishCooking()
-        setCelebrate({ name: recipe.name, emoji: recipe.emoji, time: elapsed })
-        toast(`${recipe.name} added to your streak 🔥`)
+        setCelebrate({ name: recipe?.name, emoji: recipe?.emoji, time: elapsed })
+        toast(`${recipe?.name} added to your streak 🔥`)
     }
 
     const factor = servings / BASE_SERVINGS
@@ -182,6 +271,15 @@ export default function CookPage() {
                     <Lightbulb className="h-3.5 w-3.5" /> {wake.held ? 'Awake' : 'Sleep ok'}
                 </button>
             )}
+            <button
+                type="button"
+                onClick={() => updateSettings({ autoStepTimers: !autoTimers })}
+                aria-pressed={autoTimers}
+                title={autoTimers ? 'Step timers start by themselves' : 'Tap a time to start a step timer'}
+                className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-[11px] font-bold transition-colors ${autoTimers ? 'border-[var(--brand)]/40 bg-[var(--brand-light)] text-[var(--brand)]' : 'border-[var(--border-light)] text-[var(--text-muted)]'}`}
+            >
+                <TimerIcon className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Auto timers</span> {autoTimers ? 'on' : 'off'}
+            </button>
             <button type="button" onClick={() => window.print()} aria-label="Print recipe" className="rounded-xl border border-[var(--border-light)] p-2 text-[var(--text-muted)] hover:text-[var(--text-main)]">
                 <Printer className="h-4 w-4" />
             </button>
@@ -274,6 +372,10 @@ export default function CookPage() {
                         >
                             <Play className="h-5 w-5 fill-current" /> Start cooking
                         </motion.button>
+                        <p className="text-center text-[11px] text-[var(--text-muted)]">
+                            {totalMinutes > 0 ? `A ${totalMinutes}-minute cooking timer starts with you` : 'The cooking clock starts with you'}
+                            {autoTimers ? ', and each step’s timer starts when you reach it.' : '. Tap a time in a step to start its timer.'}
+                        </p>
                     </div>
                 </div>
             ) : (
@@ -306,19 +408,50 @@ export default function CookPage() {
 
                                             {stepTimers.length > 0 && (
                                                 <div className="mt-5 flex flex-wrap gap-2">
-                                                    {stepTimers.map((d) => (
-                                                        <button
-                                                            key={d.label}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                addTimer({ label: `Step ${current + 1} · ${d.label}`, emoji: recipe.emoji, minutes: d.minutes, source: 'cook' })
-                                                                toast(`Timer running: ${d.label}`, { type: 'info' })
-                                                            }}
-                                                            className="flex items-center gap-1.5 rounded-xl bg-[var(--brand-light)] px-3.5 py-2 text-sm font-bold text-[var(--brand)] transition-all hover:bg-[var(--brand)] hover:text-black active:scale-95"
-                                                        >
-                                                            <TimerIcon className="h-4 w-4" /> {d.label}
-                                                        </button>
-                                                    ))}
+                                                    {stepTimers.map((d) => {
+                                                        const t = timers.find((x) => x.ref === stepRef(current, d))
+                                                        if (!t) {
+                                                            return (
+                                                                <button
+                                                                    key={d.label}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        startStepTimer(current, d)
+                                                                        toast(`Timer running: ${d.label}`, { type: 'info' })
+                                                                    }}
+                                                                    className="flex items-center gap-1.5 rounded-xl bg-[var(--brand-light)] px-3.5 py-2 text-sm font-bold text-[var(--brand)] transition-all hover:bg-[var(--brand)] hover:text-black active:scale-95"
+                                                                >
+                                                                    <Play className="h-4 w-4 fill-current" /> Start {d.label}
+                                                                </button>
+                                                            )
+                                                        }
+                                                        const isDone = t.state === 'done'
+                                                        return (
+                                                            <div
+                                                                key={d.label}
+                                                                className={`flex items-center gap-3 rounded-2xl border px-3 py-2 ${isDone ? 'border-rose-400/40 bg-rose-500/10' : 'border-[var(--brand)]/30 bg-[var(--brand-light)]'}`}
+                                                            >
+                                                                <ProgressRing value={isDone ? 1 : t.progress} size={40} stroke={4} color={isDone ? '#f43f5e' : 'var(--brand)'} />
+                                                                <span>
+                                                                    <span className={`block font-mono text-xl font-extrabold tabular-nums ${isDone ? 'text-rose-400' : 'text-[var(--text-main)]'}`} aria-live="polite">
+                                                                        {isDone ? "Time's up" : formatClock(t.remaining)}
+                                                                    </span>
+                                                                    <span className="block text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                                                                        {d.label}{t.state === 'paused' ? ' · paused' : ''}
+                                                                    </span>
+                                                                </span>
+                                                                {isDone ? (
+                                                                    <button type="button" onClick={() => { removeTimer(t.id); startStepTimer(current, d) }} aria-label={`Restart ${d.label} timer`} className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)]">
+                                                                        <RotateCcw className="h-4 w-4" />
+                                                                    </button>
+                                                                ) : (
+                                                                    <button type="button" onClick={() => (t.state === 'running' ? pauseTimer(t.id) : resumeTimer(t.id))} aria-label={t.state === 'running' ? `Pause ${d.label} timer` : `Resume ${d.label} timer`} className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)]">
+                                                                        {t.state === 'running' ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        )
+                                                    })}
                                                 </div>
                                             )}
 
@@ -333,10 +466,24 @@ export default function CookPage() {
                                                 >
                                                     <Check className="h-4 w-4" /> {done.has(current) ? 'Done' : 'Mark done'}
                                                 </button>
-                                                <button type="button" onClick={() => goTo(current + 1)} disabled={current === steps.length - 1} className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--text-main)] disabled:opacity-30">
-                                                    Next <ArrowRight className="h-4 w-4" />
+                                                <button
+                                                    type="button"
+                                                    onClick={next}
+                                                    disabled={!canNext}
+                                                    title={!isLast && !canNext ? 'Finish the timer or mark this step done first' : undefined}
+                                                    className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-30 ${canNext ? 'text-[var(--brand)] hover:bg-[var(--brand-light)]' : 'text-[var(--text-muted)]'}`}
+                                                >
+                                                    {!isLast && !canNext && <Lock className="h-3.5 w-3.5" />} Next <ArrowRight className="h-4 w-4" />
                                                 </button>
                                             </div>
+                                            {!isLast && !canNext && (
+                                                <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-[11px] font-semibold text-[var(--text-muted)]" aria-live="polite">
+                                                    <Lock className="h-3 w-3" />
+                                                    {stepTimers.length
+                                                        ? 'Next unlocks when the timer finishes, or tap Mark done.'
+                                                        : 'Tap Mark done when this step is finished to unlock Next.'}
+                                                </p>
+                                            )}
                                         </motion.div>
                                     </AnimatePresence>
                                 </div>
@@ -349,10 +496,11 @@ export default function CookPage() {
                                             role="tab"
                                             aria-selected={i === current}
                                             onClick={() => goTo(i)}
-                                            title={stepText(step)}
-                                            className={`grid h-9 min-w-9 shrink-0 place-items-center rounded-xl text-xs font-bold transition-all ${i === current ? 'scale-110 bg-[var(--brand)] text-black shadow-md' : done.has(i) ? 'bg-[var(--brand-light)] text-[var(--brand)]' : 'border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:border-[var(--brand)]'}`}
+                                            disabled={!canReach(i)}
+                                            title={canReach(i) ? stepText(step) : 'Finish the steps before this one first'}
+                                            className={`grid h-9 min-w-9 shrink-0 place-items-center rounded-xl text-xs font-bold transition-all disabled:cursor-not-allowed disabled:opacity-35 ${i === current ? 'scale-110 bg-[var(--brand)] text-black shadow-md' : stepComplete(i) ? 'bg-[var(--brand-light)] text-[var(--brand)]' : 'border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-muted)] enabled:hover:border-[var(--brand)]'}`}
                                         >
-                                            {done.has(i) && i !== current ? <Check className="h-3.5 w-3.5" /> : i + 1}
+                                            {stepComplete(i) && i !== current ? <Check className="h-3.5 w-3.5" /> : !canReach(i) ? <Lock className="h-3 w-3" /> : i + 1}
                                         </button>
                                     ))}
                                 </div>
@@ -360,6 +508,35 @@ export default function CookPage() {
                             </div>
 
                             <div className="space-y-4">
+                                {/* Cooking clock: time since Start, and the whole-recipe countdown. */}
+                                <div className="premium-card flex items-center gap-4 p-5">
+                                    <ProgressRing
+                                        value={totalTimer ? (totalTimer.state === 'done' ? 1 : totalTimer.progress) : pct}
+                                        size={76}
+                                        stroke={7}
+                                        color={totalTimer?.state === 'done' ? '#f43f5e' : 'var(--brand)'}
+                                        label="Cooking progress"
+                                    >
+                                        <Clock className="h-5 w-5 text-[var(--brand)]" />
+                                    </ProgressRing>
+                                    <div className="min-w-0">
+                                        <p className="k-label mb-0.5">Cooking for</p>
+                                        <p className="font-mono text-2xl font-extrabold tabular-nums text-[var(--text-main)]">{formatClock(elapsed)}</p>
+                                        {totalTimer ? (
+                                            <p className={`flex items-center gap-1.5 text-[12px] font-bold ${totalTimer.state === 'done' ? 'text-rose-400' : 'text-[var(--text-muted)]'}`}>
+                                                {totalTimer.state === 'done' ? 'Should be ready now 🍽️' : `Ready in ${formatClock(totalTimer.remaining)}${totalTimer.state === 'paused' ? ' (paused)' : ''}`}
+                                                {totalTimer.state !== 'done' && (
+                                                    <button type="button" onClick={() => (totalTimer.state === 'running' ? pauseTimer(totalTimer.id) : resumeTimer(totalTimer.id))} aria-label={totalTimer.state === 'running' ? 'Pause cooking timer' : 'Resume cooking timer'} className="rounded p-0.5 hover:text-[var(--text-main)]">
+                                                        {totalTimer.state === 'running' ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                                                    </button>
+                                                )}
+                                            </p>
+                                        ) : (
+                                            <p className="text-[12px] text-[var(--text-muted)]">{done.size} of {steps.length} steps done</p>
+                                        )}
+                                    </div>
+                                </div>
+
                                 <div className="premium-card p-5">
                                     <p className="k-label">Timers</p>
                                     {timers.length === 0 ? (
@@ -411,7 +588,7 @@ export default function CookPage() {
                                     </ul>
                                 </div>
 
-                                <button type="button" onClick={() => updateCookProgress({ startedAt: null, step: 0, done: [] })} className="flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold text-[var(--text-muted)] hover:text-rose-400">
+                                <button type="button" onClick={startOver} className="flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold text-[var(--text-muted)] hover:text-rose-400">
                                     <RotateCcw className="h-3.5 w-3.5" /> Start over
                                 </button>
                             </div>
