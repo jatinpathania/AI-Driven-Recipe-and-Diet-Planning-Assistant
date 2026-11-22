@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import React, { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -202,6 +202,19 @@ export default function KitchenDashboard() {
             setBusy(false)
         }
     }
+
+    // /kitchen?ask=... (e.g. "Get the recipe" on a planned meal) sends that
+    // question once. The param is cleared first, so a reload or React's
+    // double-run in development can't send it twice.
+    const askFromUrl = useEffectEvent(() => {
+        const ask = new URLSearchParams(window.location.search).get('ask')
+        if (!ask) return
+        window.history.replaceState(null, '', '/kitchen')
+        send(ask.slice(0, 500))
+    })
+    useEffect(() => {
+        if (hydrated) askFromUrl()
+    }, [hydrated])
 
     const newChat = () => {
         writeChat([])
