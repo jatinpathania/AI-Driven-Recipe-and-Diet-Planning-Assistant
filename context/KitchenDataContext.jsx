@@ -40,6 +40,8 @@ export const DEFAULT_SETTINGS = {
     units: 'metric',
     maxCookTime: 60,
     avoid: [],
+    // Cook mode starts a step's timer by itself when you reach that step.
+    autoStepTimers: true,
 }
 
 /** Chronological, which is how the dashboard and planner list them. */
@@ -95,6 +97,9 @@ const toMeal = (meal) => {
         calories: Number.isFinite(Number(base.calories)) && Number(base.calories) > 0 ? Math.round(Number(base.calories)) : null,
         recipeKey: base.recipeKey || recipeKey(name),
         completed: !!base.completed,
+        // Week-planner meals remember which vegetables they use and where they came from.
+        ...(Array.isArray(base.uses) && base.uses.length ? { uses: base.uses.slice(0, 8).map((u) => String(u).slice(0, 40)) } : {}),
+        ...(base.source ? { source: String(base.source).slice(0, 20) } : {}),
     }
 }
 
@@ -355,6 +360,60 @@ export const KitchenDataProvider = ({ children }) => {
         })
     }, [editDay])
 
+    /**
+     * Write a multi-day plan in one go: `byDay` is { [dateKey]: { [slot]: meal } }.
+     * With `overwrite`, each planned slot is replaced (and calories logged for
+     * meals it removes are taken back out); without it, only empty slots are
+     * filled. Returns how many meals were placed.
+     */
+    const fillDays = useCallback((byDay, { overwrite = false } = {}) => {
+        let placed = 0
+        const removed = []
+        updateJSON(KEYS.mealPlan, EMPTY_OBJ, (plan) => {
+            const next = { ...asObject(plan) }
+            for (const [key, slots] of Object.entries(byDay || {})) {
+                const day = { ...asObject(next[key]) }
+                for (const [slot, meal] of Object.entries(slots || {})) {
+                    if (!MEAL_SLOTS.includes(slot) || !meal) continue
+                    const existing = asArray(day[slot])
+                    if (existing.length && !overwrite) continue
+                    existing.forEach((m) => removed.push({ key, id: m.id }))
+                    day[slot] = [toMeal(meal)]
+                    placed++
+                }
+                if (Object.values(day).some((list) => asArray(list).length)) next[key] = day
+            }
+            return next
+        })
+        for (const r of removed) removeCalorieEntries(r.key, (e) => e.mealId === r.id)
+        return placed
+    }, [removeCalorieEntries])
+
+    /** Edit a planned meal's name / calories / emoji; a logged (ticked) meal's calorie entry follows. */
+    const updateMeal = useCallback((key, slot, id, patch) => {
+        const clean = {}
+        if (typeof patch?.name === 'string' && patch.name.trim()) clean.name = patch.name.trim().slice(0, 80)
+        if (patch && 'calories' in patch) {
+            const n = Math.round(Number(patch.calories))
+            clean.calories = Number.isFinite(n) && n > 0 ? n : null
+        }
+        if (typeof patch?.emoji === 'string') clean.emoji = patch.emoji.slice(0, 8)
+        if (!Object.keys(clean).length) return
+        if (clean.name) clean.recipeKey = recipeKey(clean.name)
+
+        editDay(key, (day) => ({ ...day, [slot]: asArray(day[slot]).map((m) => (m.id === id ? { ...m, ...clean } : m)) }))
+        updateJSON(KEYS.calories, EMPTY_OBJ, (log) => {
+            const l = asObject(log)
+            if (!asArray(l[key]).some((e) => e.mealId === id)) return l
+            return {
+                ...l,
+                [key]: asArray(l[key]).map((e) => (e.mealId === id
+                    ? { ...e, ...(clean.name ? { name: clean.name } : {}), ...('calories' in clean ? { calories: clean.calories || 0 } : {}) }
+                    : e)),
+            }
+        })
+    }, [editDay])
+
     const removeMeal = useCallback((key, slot, id) => {
         editDay(key, (day) => ({ ...day, [slot]: asArray(day[slot]).filter((m) => m.id !== id) }))
         removeCalorieEntries(key, (e) => e.mealId === id)
@@ -494,7 +553,7 @@ export const KitchenDataProvider = ({ children }) => {
             shopping, addShoppingItems, toggleShoppingItem, removeShoppingItem, clearCheckedShopping, clearShopping,
             settings, updateSettings,
             calories, caloriesFor, totalFor, addCalorieEntry, removeCalorieEntry,
-            mealPlan, mealsFor, addMeal, addMeals, removeMeal, toggleMeal, planRecipe, ingredientsForDays,
+            mealPlan, mealsFor, addMeal, addMeals, fillDays, updateMeal, removeMeal, toggleMeal, planRecipe, ingredientsForDays,
             activeRecipe, cookProgress, activeCook, startCooking, updateCookProgress, finishCooking,
             cookHistory, recentlyCooked, recordCooked, streak, relativeDay,
             resetKitchen,
@@ -505,7 +564,7 @@ export const KitchenDataProvider = ({ children }) => {
             shopping, addShoppingItems, toggleShoppingItem, removeShoppingItem, clearCheckedShopping, clearShopping,
             settings, updateSettings,
             calories, caloriesFor, totalFor, addCalorieEntry, removeCalorieEntry,
-            mealPlan, mealsFor, addMeal, addMeals, removeMeal, toggleMeal, planRecipe, ingredientsForDays,
+            mealPlan, mealsFor, addMeal, addMeals, fillDays, updateMeal, removeMeal, toggleMeal, planRecipe, ingredientsForDays,
             activeRecipe, cookProgress, activeCook, startCooking, updateCookProgress, finishCooking,
             cookHistory, recentlyCooked, recordCooked, streak, relativeDay, resetKitchen,
         ]
