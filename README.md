@@ -134,7 +134,17 @@ CLOUD_NAME=your_cloudinary_cloud_name
 CLOUD_API_KEY=your_cloudinary_api_key
 CLOUD_API_SECRET=your_cloudinary_api_secret
 NEXT_PUBLIC_API_URL=http://localhost:3000/api
+
+# Email verification on sign-up (Gmail SMTP via nodemailer, no domain needed, ~500 emails/day)
+SMTP_USER=you@gmail.com
+SMTP_PASS=your_16_char_app_password                 # myaccount.google.com/apppasswords (needs 2-Step Verification)
+# EMAIL_FROM_NAME="Flavour AI"                      (optional, sender name)
+# EMAIL_REPLY_TO=you@gmail.com                      (optional)
+# APP_URL=https://flavourai.vercel.app              (optional, link in the email footer)
+# SMTP_HOST=smtp.gmail.com  SMTP_PORT=465           (optional, for another SMTP provider)
 ```
+
+Sign-up with email and password sends a 6-digit code (valid 10 minutes, 5 tries, resend after 60 s); the account is created only after the code is entered. In development without `SMTP_USER`/`SMTP_PASS`, the code is printed to the server console instead of being emailed.
 
 ### AI knowledge base (RAG)
 ```bash
