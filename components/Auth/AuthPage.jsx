@@ -1,12 +1,12 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import Image from "next/image"
-import { Eye, EyeOff, X, Mail, Lock, Sparkles } from "lucide-react"
+import { Eye, EyeOff, X, Mail, Lock, Sparkles, ArrowLeft, MailCheck } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import { useSession, signIn, signOut } from "next-auth/react"
-import { loginUser, signupUser, saveUserData, scheduleAutoLogout, getTokenExpiryMs, clearAuthStorage } from "@/utils/api"
+import { loginUser, signupUser, verifySignupOtp, resendSignupOtp, saveUserData, scheduleAutoLogout, getTokenExpiryMs, clearAuthStorage } from "@/utils/api"
 
 const INPUT_BASE =
     "w-full h-14 rounded-xl text-base sm:text-[15px] text-white placeholder:text-white/30 bg-white/[0.03] outline-none transition-all duration-300 border border-white/10 focus:border-white/30 focus:bg-white/[0.08] focus:ring-4 focus:ring-white/5 hover:bg-white/[0.05]"
@@ -36,6 +36,8 @@ export default function AuthPage({ initialTab = "signin" }) {
         email: "",
         password: "",
     })
+    // Set once the sign-up code has been emailed: { email, resendAt, notice }.
+    const [otp, setOtp] = useState(null)
 
     // Redirect if already logged in
     useEffect(() => {
@@ -66,6 +68,7 @@ export default function AuthPage({ initialTab = "signin" }) {
 
     const switchTab = (newTab) => {
         setTab(newTab)
+        setOtp(null)
         setError("")
         setShowPassword(false)
         const path = newTab === "signin" ? "/login" : "/signup"
@@ -112,10 +115,12 @@ export default function AuthPage({ initialTab = "signin" }) {
         setLoading(true)
         try {
             const res = await signupUser(signUpForm)
-            if (res?.success) {
-                saveUserData(res.data)
-                scheduleAutoLogout()
-                router.push("/kitchen")
+            if (res?.success && res.otpRequired) {
+                // Step 2: the account is created once the emailed code is entered.
+                // The heading already says a code was sent; only repeat the server's note when it adds something.
+                setOtp({ email: res.email, resendAt: Date.now() + (res.resendInSec || 0) * 1000, notice: /already/i.test(res.message || "") ? res.message : "" })
+            } else if (res?.success && res.data?.token) {
+                finishSignIn(res.data)
             } else {
                 setError(res?.message || "Signup failed")
             }
@@ -124,6 +129,12 @@ export default function AuthPage({ initialTab = "signin" }) {
         } finally {
             setLoading(false)
         }
+    }
+
+    const finishSignIn = (data) => {
+        saveUserData(data)
+        scheduleAutoLogout()
+        router.push("/kitchen")
     }
 
     return (
@@ -227,7 +238,18 @@ export default function AuthPage({ initialTab = "signin" }) {
 
                     <div className="px-5 md:px-8 pb-8 md:pb-10">
                         <AnimatePresence mode="wait">
-                            {tab === "signup" ? (
+                            {tab === "signup" && otp ? (
+                                <OtpStep
+                                    key="otp"
+                                    otp={otp}
+                                    setOtp={setOtp}
+                                    onVerified={finishSignIn}
+                                    onBack={() => {
+                                        setOtp(null)
+                                        setError("")
+                                    }}
+                                />
+                            ) : tab === "signup" ? (
                                 <motion.div
                                     key="signup"
                                     initial={{ opacity: 0, x: -16 }}
@@ -386,6 +408,195 @@ export default function AuthPage({ initialTab = "signin" }) {
                 </div>
             </motion.div>
         </div>
+    )
+}
+
+const CODE_LENGTH = 6
+const EMPTY_CODE = Array(CODE_LENGTH).fill("")
+
+/** Sign-up step 2: enter the 6-digit code that was emailed. */
+function OtpStep({ otp, setOtp, onVerified, onBack }) {
+    const [digits, setDigits] = useState(EMPTY_CODE)
+    const [verifying, setVerifying] = useState(false)
+    const [resending, setResending] = useState(false)
+    const [error, setError] = useState("")
+    const [notice, setNotice] = useState(otp.notice || "")
+    const [now, setNow] = useState(() => Date.now())
+    const refs = useRef([])
+
+    useEffect(() => {
+        const id = setInterval(() => setNow(Date.now()), 1000)
+        return () => clearInterval(id)
+    }, [])
+
+    useEffect(() => {
+        refs.current[0]?.focus()
+    }, [])
+
+    const wait = Math.max(0, Math.ceil((otp.resendAt - now) / 1000))
+    const code = digits.join("")
+    const complete = code.length === CODE_LENGTH
+
+    const clearCode = () => {
+        setDigits(EMPTY_CODE)
+        requestAnimationFrame(() => refs.current[0]?.focus())
+    }
+
+    const verify = async (value = code) => {
+        if (value.length !== CODE_LENGTH || verifying) return
+        setVerifying(true)
+        setError("")
+        try {
+            const res = await verifySignupOtp({ email: otp.email, code: value })
+            if (res?.success && res.data?.token) onVerified(res.data)
+            else setError(res?.message || "Could not verify the code")
+        } catch (err) {
+            setError(err.message || "Something went wrong")
+            setNotice("")
+            clearCode()
+        } finally {
+            setVerifying(false)
+        }
+    }
+
+    // Typing, pasting and SMS/email autofill all land here: spread the digits
+    // across the boxes from `index` on, and submit once all six are in.
+    const fill = (index, raw) => {
+        const chars = String(raw).replace(/\D/g, "").split("")
+        const next = [...digits]
+        if (!chars.length) {
+            next[index] = ""
+            setDigits(next)
+            return
+        }
+        let i = index
+        for (const ch of chars) {
+            if (i >= CODE_LENGTH) break
+            next[i++] = ch
+        }
+        setDigits(next)
+        refs.current[Math.min(i, CODE_LENGTH - 1)]?.focus()
+        if (next.every(Boolean)) verify(next.join(""))
+    }
+
+    const onKeyDown = (i, e) => {
+        if (e.key === "Backspace" && !digits[i] && i > 0) {
+            e.preventDefault()
+            const next = [...digits]
+            next[i - 1] = ""
+            setDigits(next)
+            refs.current[i - 1]?.focus()
+        } else if (e.key === "ArrowLeft" && i > 0) {
+            refs.current[i - 1]?.focus()
+        } else if (e.key === "ArrowRight" && i < CODE_LENGTH - 1) {
+            refs.current[i + 1]?.focus()
+        }
+    }
+
+    const resend = async () => {
+        if (wait > 0 || resending) return
+        setResending(true)
+        setError("")
+        try {
+            const res = await resendSignupOtp(otp.email)
+            setOtp({ ...otp, resendAt: Date.now() + (res.resendInSec || 60) * 1000 })
+            setNotice(res.message || "New code sent.")
+            clearCode()
+        } catch (err) {
+            if (err.data?.resendInSec) setOtp({ ...otp, resendAt: Date.now() + err.data.resendInSec * 1000 })
+            setError(err.message || "Could not send a new code")
+        } finally {
+            setResending(false)
+        }
+    }
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: 16 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -16 }}
+            transition={{ duration: 0.25 }}
+        >
+            <button type="button" onClick={onBack} className="mt-1 inline-flex items-center gap-1.5 text-sm text-white/45 hover:text-white/80 transition-colors">
+                <ArrowLeft className="w-4 h-4" /> Edit details
+            </button>
+
+            <motion.div
+                initial={{ rotateY: -180, scale: 0.6, opacity: 0 }}
+                animate={{ rotateY: 0, scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 160, damping: 14, delay: 0.05 }}
+                style={{ transformPerspective: 500 }}
+                className="mt-6 w-14 h-14 rounded-2xl grid place-items-center border border-emerald-400/20 bg-emerald-500/10"
+            >
+                <MailCheck className="w-7 h-7 text-emerald-300" />
+            </motion.div>
+
+            <h2 className="text-[28px] sm:text-[36px] leading-tight font-bold text-white mt-5">Check your email</h2>
+            <p className="text-white/50 text-[15px] leading-relaxed mt-2 mb-7">
+                We sent a 6-digit code to <span className="text-white font-semibold break-all">{otp.email}</span>. Enter it below to finish creating your account.
+            </p>
+
+            <form
+                onSubmit={(e) => {
+                    e.preventDefault()
+                    verify()
+                }}
+                className="space-y-4"
+            >
+                <div className="flex justify-between gap-2 sm:gap-3" role="group" aria-label="Verification code">
+                    {digits.map((d, i) => (
+                        <input
+                            key={i}
+                            ref={(el) => {
+                                refs.current[i] = el
+                            }}
+                            value={d}
+                            onChange={(e) => fill(i, e.target.value.slice(d ? 1 : 0) || e.target.value)}
+                            onKeyDown={(e) => onKeyDown(i, e)}
+                            onPaste={(e) => {
+                                e.preventDefault()
+                                fill(i, e.clipboardData.getData("text"))
+                            }}
+                            onFocus={(e) => e.target.select()}
+                            inputMode="numeric"
+                            autoComplete={i === 0 ? "one-time-code" : "off"}
+                            maxLength={CODE_LENGTH}
+                            aria-label={`Digit ${i + 1}`}
+                            disabled={verifying}
+                            className={`w-full min-w-0 h-14 sm:h-16 rounded-xl text-center text-2xl sm:text-[28px] font-bold font-mono text-white outline-none transition-all duration-200 border bg-white/[0.03] focus:bg-white/[0.08] focus:ring-4 focus:ring-emerald-400/10 disabled:opacity-60 ${d ? "border-emerald-400/50" : "border-white/10 focus:border-white/30"}`}
+                        />
+                    ))}
+                </div>
+
+                {error ? (
+                    <ErrorDisplay error={error} />
+                ) : notice ? (
+                    <p className="text-emerald-300/90 text-sm text-center py-3 px-4 rounded-xl border border-emerald-400/15 bg-emerald-500/[0.06]" aria-live="polite">
+                        {notice}
+                    </p>
+                ) : null}
+
+                <button
+                    type="submit"
+                    disabled={!complete || verifying}
+                    className="w-full h-14 bg-white text-black font-bold rounded-xl mt-2 hover:bg-neutral-200 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    {verifying ? "Verifying..." : "Verify & create account"}
+                </button>
+            </form>
+
+            <p className="text-center text-white/40 text-sm mt-6">
+                Didn&apos;t get it? Check your spam folder, or{" "}
+                {wait > 0 ? (
+                    <span className="text-white/60 tabular-nums">resend in {Math.floor(wait / 60)}:{String(wait % 60).padStart(2, "0")}</span>
+                ) : (
+                    <button type="button" onClick={resend} disabled={resending} className="font-semibold text-emerald-300 hover:text-emerald-200 disabled:opacity-50">
+                        {resending ? "sending..." : "resend code"}
+                    </button>
+                )}
+            </p>
+            <p className="text-center text-white/25 text-[12px] mt-3">The code expires in 10 minutes.</p>
+        </motion.div>
     )
 }
 
