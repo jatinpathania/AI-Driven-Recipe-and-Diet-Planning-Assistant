@@ -103,8 +103,16 @@ const apiCall = async (endpoint, options = {}) => {
 
 /* ── Auth ─────────────────────────────────────────────────── */
 
+/** Step 1 of sign-up: emails a 6-digit code (→ { otpRequired, email, resendInSec, ... }). */
 export const signupUser = (userData) =>
     apiCall('/auth/signup', { method: 'POST', body: JSON.stringify(userData) });
+
+/** Step 2 of sign-up: check the code; on success returns { data: { token, ... } } like login. */
+export const verifySignupOtp = ({ email, code }) =>
+    apiCall('/auth/signup/verify', { method: 'POST', body: JSON.stringify({ email, code }) });
+
+export const resendSignupOtp = (email) =>
+    apiCall('/auth/signup/resend', { method: 'POST', body: JSON.stringify({ email }) });
 
 export const loginUser = (credentials) =>
     apiCall('/auth/login', {
