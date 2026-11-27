@@ -142,12 +142,9 @@ SMTP_PASS=your_16_char_app_password                 # myaccount.google.com/apppa
 # EMAIL_REPLY_TO=you@gmail.com                      (optional)
 # APP_URL=https://flavourai.vercel.app              (optional, link in the email footer)
 # SMTP_HOST=smtp.gmail.com  SMTP_PORT=465           (optional, for another SMTP provider)
-
-# Real recipe photos from Google Images (via serper.dev; copied to Cloudinary, one search per dish)
-SERPER_API_KEY=your_serper_key                      # serper.dev, 2,500 free searches
 ```
 
-Recipes without a picture get a real photo of the dish the first time the Recipes page shows them ([lib/recipe/photoSearch.js](lib/recipe/photoSearch.js)). Each dish is searched once and remembered for everyone, and new searches are capped at 150 a day. Without `SERPER_API_KEY` the cards keep their emoji.
+Recipes without a picture get a real photo of the dish the first time the Recipes page shows them ([lib/recipe/photoSearch.js](lib/recipe/photoSearch.js)). Photos come from Wikimedia Commons and Openverse (openly licensed, no API key needed) and are copied to Cloudinary. Each dish is searched once and remembered for everyone, with its source, licence and author; new searches are capped at 150 a day. A dish with no matching photo keeps its emoji.
 
 Sign-up with email and password sends a 6-digit code (valid 10 minutes, 5 tries, resend after 60 s); the account is created only after the code is entered. "Forgot password?" on the sign-in page works the same way: the emailed code unlocks a one-time reset page (valid 15 minutes), and setting the new password signs the account out on every other device. In development without `SMTP_USER`/`SMTP_PASS`, the code is printed to the server console instead of being emailed.
 
