@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { clearUserData, getUserData, isAuthenticated, scheduleAutoLogout } from "@/utils/api"
 import { markSigningOut } from "@/context/GuestUserContext"
 import ConfirmDialog from "@/components/ui/ConfirmDialog"
+import { isLiteMotion } from "@/lib/motion/lite"
 
 const LOGO_WORDS = ["AI", "Chef", "Guide", "Expert"]
 
@@ -53,6 +54,9 @@ export default function Header({ overlay = false }) {
     const [username, setUsername] = useState("User")
     const [menuOpen, setMenuOpen] = useState(false)
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+    // Phones and low-end devices: the logo stays still instead of wobbling
+    // forever (that runs every frame). Changes no markup, so it's hydration-safe.
+    const [lite] = useState(isLiteMotion)
 
     useEffect(() => {
         const syncAuth = () => {
@@ -133,22 +137,22 @@ export default function Header({ overlay = false }) {
                 initial={{ y: -100, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
-                className={`${overlay ? "sticky top-0 z-50 -mb-[72px]" : "sticky top-0 z-50"} transition-all duration-300 ${isScrolled
-                        ? "bg-white/70 backdrop-blur-xl border-b border-emerald-900/10 shadow-[0_10px_40px_-18px_rgba(27,94,32,0.35)]"
+                className={`site-header ${overlay ? "sticky top-0 z-50 -mb-[72px]" : "sticky top-0 z-50"} transition-all duration-300 ${isScrolled
+                        ? "is-scrolled bg-white/70 backdrop-blur-xl border-b border-emerald-900/10 shadow-[0_10px_40px_-18px_rgba(27,94,32,0.35)]"
                         : "bg-transparent border-b border-transparent"
                     }`}
             >
                 <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4">
                     <Link href="/" className="flex items-center gap-2 sm:gap-3">
                         <motion.div
-                            animate={{ rotate: [0, 10, -10, 0] }}
+                            animate={lite ? undefined : { rotate: [0, 10, -10, 0] }}
                             transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
                             className="relative"
                         >
                             <Image src="/icon.png" alt="Flavour AI" width={40} height={40} className="w-8 h-8 sm:w-10 sm:h-10" />
                             <motion.div
                                 className="absolute -top-1 -right-1"
-                                animate={{ scale: [1, 1.2, 1], opacity: [0.7, 1, 0.7] }}
+                                animate={lite ? undefined : { scale: [1, 1.2, 1], opacity: [0.7, 1, 0.7] }}
                                 transition={{ duration: 2, repeat: Infinity }}
                             >
                                 <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-green-700" />
