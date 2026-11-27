@@ -114,6 +114,23 @@ export const verifySignupOtp = ({ email, code }) =>
 export const resendSignupOtp = (email) =>
     apiCall('/auth/signup/resend', { method: 'POST', body: JSON.stringify({ email }) });
 
+/* Forgot password: email a code → trade the code for a reset token → set the new password. */
+
+/** Step 1: emails a 6-digit code (→ { otpRequired, email, resendInSec, ... }). */
+export const requestPasswordReset = (email) =>
+    apiCall('/auth/password/forgot', { method: 'POST', body: JSON.stringify({ email }) });
+
+export const resendPasswordResetOtp = (email) =>
+    apiCall('/auth/password/resend', { method: 'POST', body: JSON.stringify({ email }) });
+
+/** Step 2: check the code (→ { resetToken, expiresInSec }). */
+export const verifyPasswordResetOtp = ({ email, code }) =>
+    apiCall('/auth/password/verify', { method: 'POST', body: JSON.stringify({ email, code }) });
+
+/** Step 3: set the new password; on success returns { data: { token, ... } } like login. */
+export const resetPassword = ({ email, resetToken, password }) =>
+    apiCall('/auth/password/reset', { method: 'POST', body: JSON.stringify({ email, resetToken, password }) });
+
 export const loginUser = (credentials) =>
     apiCall('/auth/login', {
         method: 'POST',
@@ -121,6 +138,10 @@ export const loginUser = (credentials) =>
     });
 
 export const getCurrentUser = () => apiCall('/auth/me', { method: 'GET' });
+
+/** A real photo for a dish (→ { url } or { url: null, reason }). See app/api/recipes/photo. */
+export const getRecipePhoto = (name) =>
+    apiCall(`/recipes/photo?name=${encodeURIComponent(name)}`, { method: 'GET' });
 
 export const updateUserProfile = (profileData) =>
     apiCall('/users/profile', { method: 'PUT', body: JSON.stringify(profileData) });
