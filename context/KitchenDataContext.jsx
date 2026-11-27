@@ -6,6 +6,7 @@ import {
 } from '@/lib/store/local'
 import { useStored, useHydrated, useToday } from '@/lib/store/hooks'
 import { normalizeRecipe, SAMPLE_RECIPES } from '@/lib/recipe/normalize'
+import { useRecipePhotos } from '@/lib/recipe/useRecipePhotos'
 import { dateKey, addDays, weekKeys, DAY_NAMES, mealSlotNow, parseDateKey } from '@/lib/date'
 
 /**
@@ -248,6 +249,9 @@ export const KitchenDataProvider = ({ children }) => {
             asArray(list).map((r) => ((r.key || recipeKey(r)) === key ? { ...r, ...patch } : r))
         )
     }, [])
+
+    // Real dish photos for saved recipes, fetched in the background on any kitchen page.
+    const photoPending = useRecipePhotos(recipes, updateRecipe, hydrated)
 
     const findRecipe = useCallback(
         (nameOrKey) => {
@@ -566,7 +570,7 @@ export const KitchenDataProvider = ({ children }) => {
     const value = useMemo(
         () => ({
             hydrated, today,
-            recipes, saveRecipe, deleteRecipe, updateRecipe, findRecipe,
+            recipes, saveRecipe, deleteRecipe, updateRecipe, findRecipe, photoPending,
             favourites, isFavourite, toggleFavourite,
             shopping, addShoppingItems, toggleShoppingItem, removeShoppingItem, clearCheckedShopping, clearShopping,
             settings, updateSettings,
@@ -577,7 +581,7 @@ export const KitchenDataProvider = ({ children }) => {
             resetKitchen,
         }),
         [
-            hydrated, today, recipes, saveRecipe, deleteRecipe, updateRecipe, findRecipe,
+            hydrated, today, recipes, saveRecipe, deleteRecipe, updateRecipe, findRecipe, photoPending,
             favourites, isFavourite, toggleFavourite,
             shopping, addShoppingItems, toggleShoppingItem, removeShoppingItem, clearCheckedShopping, clearShopping,
             settings, updateSettings,
