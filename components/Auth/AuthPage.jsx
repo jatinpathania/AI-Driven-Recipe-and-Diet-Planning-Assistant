@@ -2,12 +2,17 @@
 import { useState, useEffect, useRef } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import Image from "next/image"
-import { Eye, EyeOff, X, Mail, Lock, User, IdCard, Sparkles, ArrowLeft, ArrowRight, MailCheck, Loader2 } from "lucide-react"
+import { Eye, EyeOff, X, Mail, Lock, User, IdCard, Sparkles, ArrowLeft, ArrowRight, MailCheck, Loader2, KeyRound, ShieldCheck } from "lucide-react"
 import { motion, AnimatePresence, MotionConfig, useMotionValue, useSpring, useTransform, useMotionTemplate } from "framer-motion"
 import { Fraunces } from "next/font/google"
 import Link from "next/link"
 import { useSession, signIn, signOut } from "next-auth/react"
-import { loginUser, signupUser, verifySignupOtp, resendSignupOtp, saveUserData, scheduleAutoLogout, getTokenExpiryMs, clearAuthStorage } from "@/utils/api"
+import {
+    loginUser, signupUser, verifySignupOtp, resendSignupOtp,
+    requestPasswordReset, resendPasswordResetOtp, verifyPasswordResetOtp, resetPassword,
+    saveUserData, scheduleAutoLogout, getTokenExpiryMs, clearAuthStorage,
+} from "@/utils/api"
+import { isLiteMotion, isLowPower } from "@/lib/motion/lite"
 
 // Display face for headings: a soft serif in the spirit of the landing hero.
 // Body text uses Plus Jakarta Sans, already loaded in the root layout.
@@ -34,9 +39,27 @@ const panel = {
     show: { opacity: 1, x: 0, filter: "blur(0px)", transition: { duration: 0.45, ease: EASE_OUT, staggerChildren: 0.055, delayChildren: 0.05 } },
     exit: (dir) => ({ opacity: 0, x: dir * -24, filter: "blur(6px)", transition: { duration: 0.22, ease: "easeIn" } }),
 }
+// Phones and low-end devices: animating a blur filter over the whole form is
+// expensive there. Same start state (so it matches the server render), but the
+// blur clears at once and the exit is a plain fade-slide.
+const panelLite = {
+    hidden: panel.hidden,
+    show: { ...panel.show, transition: { ...panel.show.transition, filter: { duration: 0 } } },
+    exit: (dir) => ({ opacity: 0, x: dir * -24, transition: { duration: 0.2, ease: "easeIn" } }),
+}
 const rise = {
     hidden: { opacity: 0, y: 14 },
     show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE_OUT } },
+}
+
+/**
+ * Motion level for this device, read once from <html> (lib/motion/lite.js).
+ * Only steers animations, never markup, so the server's "false" is harmless.
+ */
+function useMotionLevel() {
+    const [lite] = useState(isLiteMotion)
+    const [lowPower] = useState(isLowPower)
+    return { lite, lowPower, panelVariants: lite ? panelLite : panel }
 }
 
 export default function AuthPage({ initialTab = "signin" }) {
@@ -58,6 +81,9 @@ export default function AuthPage({ initialTab = "signin" }) {
     })
     // Set once the sign-up code has been emailed: { email, resendAt, notice }.
     const [otp, setOtp] = useState(null)
+    // Forgot-password flow on the sign-in tab, null when not in it:
+    //   { step: "email", email }  →  { step: "code", email, resendAt, notice }  →  { step: "new", email, resetToken }
+    const [forgot, setForgot] = useState(null)
 
     // Redirect if already logged in
     useEffect(() => {
@@ -89,6 +115,7 @@ export default function AuthPage({ initialTab = "signin" }) {
     const switchTab = (newTab) => {
         setTab(newTab)
         setOtp(null)
+        setForgot(null)
         setError("")
         setShowPassword(false)
         const path = newTab === "signin" ? "/login" : "/signup"
@@ -159,39 +186,27 @@ export default function AuthPage({ initialTab = "signin" }) {
 
     // Sign up sits left of sign in, so panels slide the way the tabs read.
     const dir = tab === "signup" ? -1 : 1
+    const { lite, lowPower, panelVariants } = useMotionLevel()
 
-    const passwordToggle = (
-        <button
-            type="button"
-            onClick={() => setShowPassword((prev) => !prev)}
-            aria-label={showPassword ? "Hide password" : "Show password"}
-            className="absolute right-4 text-white/30 hover:text-white/70 transition-colors"
-        >
-            <AnimatePresence mode="wait" initial={false}>
-                <motion.span
-                    key={showPassword ? "hide" : "show"}
-                    initial={{ opacity: 0, rotate: -90, scale: 0.6 }}
-                    animate={{ opacity: 1, rotate: 0, scale: 1 }}
-                    exit={{ opacity: 0, rotate: 90, scale: 0.6 }}
-                    transition={{ duration: 0.18 }}
-                    className="block"
-                >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </motion.span>
-            </AnimatePresence>
-        </button>
-    )
+    const passwordToggle = <PasswordToggle shown={showPassword} onToggle={() => setShowPassword((prev) => !prev)} />
+
+    // Start the forgot-password flow, carrying over the sign-in email if one was typed.
+    const openForgot = () => {
+        setError("")
+        setShowPassword(false)
+        setForgot({ step: "email", email: signInForm.email.includes("@") ? signInForm.email.trim() : "" })
+    }
 
     return (
-        <MotionConfig reducedMotion="user">
+        <MotionConfig reducedMotion={lowPower ? "always" : "user"}>
             <div
-                className="min-h-screen min-h-[100svh] flex items-center justify-center p-4 md:p-8 relative overflow-hidden"
+                className="auth-page min-h-screen min-h-[100svh] flex items-center justify-center p-4 md:p-8 relative overflow-hidden"
                 style={{
                     background: "radial-gradient(ellipse at 50% 0%, #1a4d2e 0%, #0d2715 45%, #051108 100%)",
                     fontFamily: BODY_FONT,
                 }}
             >
-                <AuthBackground />
+                <AuthBackground lite={lite} />
 
                 <motion.div
                     initial={{ opacity: 0, y: 36, rotateX: 16, scale: 0.97 }}
@@ -200,7 +215,7 @@ export default function AuthPage({ initialTab = "signin" }) {
                     style={{ transformPerspective: 1200 }}
                     className="relative z-10 w-full max-w-[560px]"
                 >
-                    <SpotlightCard>
+                    <SpotlightCard lite={lite}>
                         <motion.div
                             initial={{ opacity: 0, y: -8 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -209,14 +224,14 @@ export default function AuthPage({ initialTab = "signin" }) {
                         >
                             <Link href="/" className="group inline-flex items-center gap-2 sm:gap-3">
                                 <motion.div
-                                    animate={{ rotate: [0, 10, -10, 0] }}
+                                    animate={lite ? undefined : { rotate: [0, 10, -10, 0] }}
                                     transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
                                     className="relative"
                                 >
                                     <Image src="/icon.png" alt="Flavour AI" width={36} height={36} priority className="w-8 h-8 sm:w-9 sm:h-9 transition-transform duration-300 group-hover:scale-110" />
                                     <motion.div
                                         className="absolute -top-1 -right-1"
-                                        animate={{ scale: [1, 1.2, 1], opacity: [0.7, 1, 0.7] }}
+                                        animate={lite ? undefined : { scale: [1, 1.2, 1], opacity: [0.7, 1, 0.7] }}
                                         transition={{ duration: 2, repeat: Infinity }}
                                     >
                                         <Sparkles className="w-3 h-3 text-green-700" />
@@ -272,14 +287,61 @@ export default function AuthPage({ initialTab = "signin" }) {
                                         key="otp"
                                         otp={otp}
                                         setOtp={setOtp}
-                                        onVerified={finishSignIn}
+                                        purpose="finish creating your account"
+                                        submitLabel="Verify & create account"
+                                        onSubmitCode={async (code) => {
+                                            const res = await verifySignupOtp({ email: otp.email, code })
+                                            if (!(res?.success && res.data?.token)) throw new Error(res?.message || "Could not verify the code")
+                                            finishSignIn(res.data)
+                                        }}
+                                        onResend={resendSignupOtp}
+                                        backLabel="Edit details"
                                         onBack={() => {
                                             setOtp(null)
                                             setError("")
                                         }}
                                     />
+                                ) : tab === "signin" && forgot?.step === "email" ? (
+                                    <ForgotEmailStep
+                                        key="forgot-email"
+                                        initialEmail={forgot.email}
+                                        notice={forgot.notice}
+                                        onSent={(res, email) =>
+                                            setForgot({
+                                                step: "code",
+                                                email: res.email || email,
+                                                resendAt: Date.now() + (res.resendInSec || 0) * 1000,
+                                                notice: /already/i.test(res.message || "") ? res.message : "",
+                                            })
+                                        }
+                                        onBack={() => setForgot(null)}
+                                    />
+                                ) : tab === "signin" && forgot?.step === "code" ? (
+                                    <OtpStep
+                                        key="forgot-code"
+                                        otp={forgot}
+                                        setOtp={setForgot}
+                                        purpose="reset your password"
+                                        submitLabel="Verify code"
+                                        onSubmitCode={async (code) => {
+                                            const res = await verifyPasswordResetOtp({ email: forgot.email, code })
+                                            if (!(res?.success && res.resetToken)) throw new Error(res?.message || "Could not verify the code")
+                                            setForgot({ step: "new", email: forgot.email, resetToken: res.resetToken })
+                                        }}
+                                        onResend={resendPasswordResetOtp}
+                                        backLabel="Change email"
+                                        onBack={() => setForgot({ step: "email", email: forgot.email })}
+                                    />
+                                ) : tab === "signin" && forgot?.step === "new" ? (
+                                    <NewPasswordStep
+                                        key="forgot-new"
+                                        email={forgot.email}
+                                        resetToken={forgot.resetToken}
+                                        onDone={finishSignIn}
+                                        onRestart={(notice) => setForgot({ step: "email", email: forgot.email, notice })}
+                                    />
                                 ) : tab === "signup" ? (
-                                    <motion.div key="signup" custom={dir} variants={panel} initial="hidden" animate="show" exit="exit">
+                                    <motion.div key="signup" custom={dir} variants={panelVariants} initial="hidden" animate="show" exit="exit">
                                         <AuthHeading lead="Create an" accent="account" />
                                         <motion.p variants={rise} className="text-white/45 text-[15px] mt-2 mb-6 sm:mb-7">
                                             Your AI sous-chef is ready. It takes less than a minute.
@@ -362,7 +424,7 @@ export default function AuthPage({ initialTab = "signin" }) {
                                         </motion.p>
                                     </motion.div>
                                 ) : (
-                                    <motion.div key="signin" custom={dir} variants={panel} initial="hidden" animate="show" exit="exit">
+                                    <motion.div key="signin" custom={dir} variants={panelVariants} initial="hidden" animate="show" exit="exit">
                                         <AuthHeading lead="Welcome" accent="back" />
                                         <motion.p variants={rise} className="text-white/45 text-[15px] mt-2 mb-6 sm:mb-7">
                                             Sign in to pick up where you left off in the kitchen.
@@ -399,6 +461,15 @@ export default function AuthPage({ initialTab = "signin" }) {
                                                     />
                                                     {passwordToggle}
                                                 </Field>
+                                                <div className="mt-2 flex justify-end">
+                                                    <button
+                                                        type="button"
+                                                        onClick={openForgot}
+                                                        className="text-[13px] font-semibold text-green-300/80 hover:text-green-200 transition-colors"
+                                                    >
+                                                        Forgot password?
+                                                    </button>
+                                                </div>
                                             </motion.div>
 
                                             <AnimatePresence>{error && <ErrorDisplay key={error} error={error} />}</AnimatePresence>
@@ -427,32 +498,37 @@ export default function AuthPage({ initialTab = "signin" }) {
     )
 }
 
-/** Glows, receding grid floor and ingredient coins that drift with the pointer. */
-function AuthBackground() {
+/**
+ * Glows, receding grid floor and ingredient coins that drift with the pointer.
+ * With `lite` (phones, low-end devices) everything stays put: endless motion
+ * behind the card would also make its glass redo its work every frame.
+ */
+function AuthBackground({ lite }) {
     const px = useMotionValue(0)
     const py = useMotionValue(0)
     const sx = useSpring(px, { stiffness: 40, damping: 18 })
     const sy = useSpring(py, { stiffness: 40, damping: 18 })
 
     useEffect(() => {
+        if (lite) return undefined
         const onMove = (e) => {
             px.set(e.clientX / window.innerWidth - 0.5)
             py.set(e.clientY / window.innerHeight - 0.5)
         }
         window.addEventListener("pointermove", onMove, { passive: true })
         return () => window.removeEventListener("pointermove", onMove)
-    }, [px, py])
+    }, [lite, px, py])
 
     return (
         <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
             <motion.div
                 className="absolute top-[-10%] left-[20%] w-[420px] h-[420px] rounded-full blur-[120px] opacity-25 bg-green-500/20"
-                animate={{ x: [0, 60, -20, 0], y: [0, 30, 50, 0], scale: [1, 1.15, 0.95, 1] }}
+                animate={lite ? undefined : { x: [0, 60, -20, 0], y: [0, 30, 50, 0], scale: [1, 1.15, 0.95, 1] }}
                 transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
             />
             <motion.div
                 className="absolute bottom-[-10%] right-[20%] w-[420px] h-[420px] rounded-full blur-[120px] opacity-20 bg-emerald-500/20"
-                animate={{ x: [0, -50, 30, 0], y: [0, -40, -10, 0], scale: [1, 0.9, 1.12, 1] }}
+                animate={lite ? undefined : { x: [0, -50, 30, 0], y: [0, -40, -10, 0], scale: [1, 0.9, 1.12, 1] }}
                 transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
             />
             {/* receding grid floor, scrolling slowly toward the viewer like the landing hero */}
@@ -466,17 +542,17 @@ function AuthBackground() {
                     maskImage: "linear-gradient(to bottom, transparent, black 35%, transparent)",
                     WebkitMaskImage: "linear-gradient(to bottom, transparent, black 35%, transparent)",
                 }}
-                animate={{ backgroundPositionY: ["0px", "56px"] }}
+                animate={lite ? undefined : { backgroundPositionY: ["0px", "56px"] }}
                 transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
             />
             {AUTH_COINS.map((c, i) => (
-                <Coin key={c.e} coin={c} index={i} sx={sx} sy={sy} />
+                <Coin key={c.e} coin={c} index={i} sx={sx} sy={sy} lite={lite} />
             ))}
         </div>
     )
 }
 
-function Coin({ coin, index, sx, sy }) {
+function Coin({ coin, index, sx, sy, lite }) {
     const x = useTransform(sx, (v) => v * -coin.depth)
     const y = useTransform(sy, (v) => v * -coin.depth)
     return (
@@ -490,7 +566,7 @@ function Coin({ coin, index, sx, sy }) {
             <motion.span
                 className="block"
                 style={{ fontSize: coin.size }}
-                animate={{ rotateY: [0, 360], y: [0, -14, 0] }}
+                animate={lite ? undefined : { rotateY: [0, 360], y: [0, -14, 0] }}
                 transition={{ duration: 7 + index, repeat: Infinity, ease: "easeInOut", delay: index * 0.6 }}
             >
                 {coin.e}
@@ -499,8 +575,12 @@ function Coin({ coin, index, sx, sy }) {
     )
 }
 
-/** The glass card, with a soft light that follows the pointer and a sheen along the top edge. */
-function SpotlightCard({ children }) {
+/**
+ * The glass card, with a soft light that follows the pointer and a sheen along
+ * the top edge. With `lite`, CSS swaps the blur for a solid fill (.auth-card in
+ * globals.css) and the sheen stands still and hidden.
+ */
+function SpotlightCard({ lite, children }) {
     const mx = useMotionValue(-400)
     const my = useMotionValue(-400)
     const glow = useMotionTemplate`radial-gradient(420px circle at ${mx}px ${my}px, rgba(255,255,255,0.06), transparent 70%)`
@@ -517,7 +597,7 @@ function SpotlightCard({ children }) {
                 mx.set(-400)
                 my.set(-400)
             }}
-            className="group/card relative rounded-[32px] border border-white/[0.08] bg-black/50 backdrop-blur-3xl overflow-hidden"
+            className="auth-card group/card relative rounded-[32px] border border-white/[0.08] bg-black/50 backdrop-blur-3xl overflow-hidden"
             style={{ boxShadow: "0 40px 80px -20px rgba(0, 0, 0, 0.55)" }}
         >
             {/* pointer light on the surface */}
@@ -535,10 +615,10 @@ function SpotlightCard({ children }) {
                 aria-hidden="true"
             />
             {/* sheen travelling along the top edge */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-px overflow-hidden" aria-hidden="true">
+            <div className="auth-sheen pointer-events-none absolute inset-x-0 top-0 h-px overflow-hidden" aria-hidden="true">
                 <motion.div
                     className="h-full w-1/3 bg-gradient-to-r from-transparent via-green-300/60 to-transparent"
-                    animate={{ x: ["-100%", "400%"] }}
+                    animate={lite ? undefined : { x: ["-100%", "400%"] }}
                     transition={{ duration: 3.5, repeat: Infinity, repeatDelay: 2.5, ease: "easeInOut" }}
                 />
             </div>
@@ -627,11 +707,295 @@ function PrimaryButton({ loading, loadingText, disabled, children }) {
     )
 }
 
+/** Eye button inside a password field. */
+function PasswordToggle({ shown, onToggle }) {
+    return (
+        <button
+            type="button"
+            onClick={onToggle}
+            aria-label={shown ? "Hide password" : "Show password"}
+            className="absolute right-4 text-white/30 hover:text-white/70 transition-colors"
+        >
+            <AnimatePresence mode="wait" initial={false}>
+                <motion.span
+                    key={shown ? "hide" : "show"}
+                    initial={{ opacity: 0, rotate: -90, scale: 0.6 }}
+                    animate={{ opacity: 1, rotate: 0, scale: 1 }}
+                    exit={{ opacity: 0, rotate: 90, scale: 0.6 }}
+                    transition={{ duration: 0.18 }}
+                    className="block"
+                >
+                    {shown ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </motion.span>
+            </AnimatePresence>
+        </button>
+    )
+}
+
+/** "← Back" link at the top of a step. */
+function BackLink({ onClick, children }) {
+    return (
+        <motion.button
+            variants={rise}
+            type="button"
+            onClick={onClick}
+            className="group mt-1 inline-flex items-center gap-1.5 text-sm text-white/45 hover:text-white/80 transition-colors"
+        >
+            <ArrowLeft className="w-4 h-4 transition-transform duration-300 group-hover:-translate-x-1" /> {children}
+        </motion.button>
+    )
+}
+
+/** Icon tile that flips in at the top of a step, with an optional soft ping behind it. */
+function StepIcon({ icon: Icon, ping = false }) {
+    const { lite } = useMotionLevel()
+    return (
+        <div className="relative mt-6 w-14 h-14">
+            {ping && (
+                <motion.span
+                    className="absolute inset-0 rounded-2xl border border-emerald-400/30"
+                    animate={lite ? { opacity: 0 } : { scale: [1, 1.5], opacity: [0.6, 0] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeOut", delay: 0.8 }}
+                    aria-hidden="true"
+                />
+            )}
+            <motion.div
+                initial={{ rotateY: -180, scale: 0.6, opacity: 0 }}
+                animate={{ rotateY: 0, scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 160, damping: 14, delay: 0.05 }}
+                style={{ transformPerspective: 500 }}
+                className="relative w-14 h-14 rounded-2xl grid place-items-center border border-emerald-400/20 bg-emerald-500/10"
+            >
+                <Icon className="w-7 h-7 text-emerald-300" />
+            </motion.div>
+        </div>
+    )
+}
+
+/** Green info line (e.g. "New code sent"). */
+function NoticeDisplay({ notice }) {
+    return (
+        <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className="text-emerald-300/90 text-sm text-center py-3 px-4 rounded-xl border border-emerald-400/15 bg-emerald-500/[0.06]"
+            aria-live="polite"
+        >
+            {notice}
+        </motion.p>
+    )
+}
+
+/** Forgot password, step 1: ask for the account email and send a code. */
+function ForgotEmailStep({ initialEmail, notice, onSent, onBack }) {
+    const [email, setEmail] = useState(initialEmail || "")
+    const [sending, setSending] = useState(false)
+    const [error, setError] = useState("")
+    const inputRef = useRef(null)
+    const { panelVariants } = useMotionLevel()
+
+    useEffect(() => {
+        inputRef.current?.focus()
+    }, [])
+
+    const submit = async (e) => {
+        e.preventDefault()
+        const value = email.trim()
+        if (!value) return setError("Please enter your email")
+        setSending(true)
+        setError("")
+        try {
+            const res = await requestPasswordReset(value)
+            if (!res?.success) throw new Error(res?.message || "Could not send the code")
+            onSent(res, value)
+        } catch (err) {
+            setError(err.message || "Something went wrong")
+        } finally {
+            setSending(false)
+        }
+    }
+
+    return (
+        <motion.div custom={1} variants={panelVariants} initial="hidden" animate="show" exit="exit">
+            <BackLink onClick={onBack}>Back to sign in</BackLink>
+            <StepIcon icon={KeyRound} />
+
+            <div className="mt-2">
+                <AuthHeading lead="Forgot your" accent="password?" />
+            </div>
+            <motion.p variants={rise} className="text-white/50 text-[15px] leading-relaxed mt-2 mb-6 sm:mb-7">
+                No worries. Enter the email on your account and we&apos;ll send you a 6-digit code to reset it.
+            </motion.p>
+
+            <form onSubmit={submit} className="space-y-4" noValidate>
+                <motion.div variants={rise}>
+                    <Field icon={Mail}>
+                        <input
+                            ref={inputRef}
+                            type="email"
+                            placeholder="Enter your email"
+                            autoComplete="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className={`${INPUT_BASE} pl-12 pr-5`}
+                            style={{ minHeight: 56 }}
+                            required
+                        />
+                    </Field>
+                </motion.div>
+
+                <AnimatePresence mode="wait">
+                    {error ? <ErrorDisplay key={`e-${error}`} error={error} /> : notice ? <NoticeDisplay key={`n-${notice}`} notice={notice} /> : null}
+                </AnimatePresence>
+
+                <motion.div variants={rise} className="pt-2">
+                    <PrimaryButton loading={sending} loadingText="Sending code">
+                        Send code
+                    </PrimaryButton>
+                </motion.div>
+            </form>
+
+            <motion.p variants={rise} className="text-center text-white/40 text-sm mt-6">
+                Remembered it?{" "}
+                <button type="button" onClick={onBack} className="font-semibold text-emerald-300 hover:text-emerald-200">
+                    Sign in
+                </button>
+            </motion.p>
+        </motion.div>
+    )
+}
+
+/** Forgot password, step 3: choose the new password (after the code was accepted). */
+function NewPasswordStep({ email, resetToken, onDone, onRestart }) {
+    const [password, setPassword] = useState("")
+    const [confirm, setConfirm] = useState("")
+    const [shown, setShown] = useState(false)
+    const [saving, setSaving] = useState(false)
+    const [error, setError] = useState("")
+    const [expired, setExpired] = useState(false)
+    const inputRef = useRef(null)
+    const { panelVariants } = useMotionLevel()
+
+    useEffect(() => {
+        inputRef.current?.focus()
+    }, [])
+
+    const matches = confirm.length > 0 && password === confirm
+
+    const submit = async (e) => {
+        e.preventDefault()
+        if (password.length < 6) return setError("Password must be at least 6 characters")
+        if (password.length > 128) return setError("Password is too long")
+        if (password !== confirm) return setError("The two passwords don't match")
+
+        setSaving(true)
+        setError("")
+        try {
+            const res = await resetPassword({ email, resetToken, password })
+            if (!(res?.success && res.data?.token)) throw new Error(res?.message || "Could not update the password")
+            onDone(res.data)
+        } catch (err) {
+            if (err.data?.code === "RESET_EXPIRED") setExpired(true)
+            setError(err.message || "Something went wrong")
+            setSaving(false)
+        }
+    }
+
+    return (
+        <motion.div custom={1} variants={panelVariants} initial="hidden" animate="show" exit="exit">
+            <StepIcon icon={ShieldCheck} />
+
+            <div className="mt-2">
+                <AuthHeading lead="Set a new" accent="password" />
+            </div>
+            <motion.p variants={rise} className="text-white/50 text-[15px] leading-relaxed mt-2 mb-6 sm:mb-7">
+                For <span className="text-white font-semibold break-all">{email}</span>. You&apos;ll be signed in right after, and signed out on your other devices.
+            </motion.p>
+
+            <form onSubmit={submit} className="space-y-4" noValidate>
+                {/* Lets password managers save the new password against the right account. */}
+                <input type="email" name="username" autoComplete="username" value={email} readOnly hidden />
+
+                <motion.div variants={rise}>
+                    <Field icon={Lock}>
+                        <input
+                            ref={inputRef}
+                            type={shown ? "text" : "password"}
+                            placeholder="New password (6+ characters)"
+                            autoComplete="new-password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className={`${INPUT_BASE} pl-12 pr-12`}
+                            style={{ minHeight: 56 }}
+                            required
+                            minLength={6}
+                        />
+                        <PasswordToggle shown={shown} onToggle={() => setShown((v) => !v)} />
+                    </Field>
+                </motion.div>
+
+                <motion.div variants={rise}>
+                    <Field icon={Lock}>
+                        <input
+                            type={shown ? "text" : "password"}
+                            placeholder="Confirm new password"
+                            autoComplete="new-password"
+                            value={confirm}
+                            onChange={(e) => setConfirm(e.target.value)}
+                            className={`${INPUT_BASE} pl-12 pr-5`}
+                            style={{ minHeight: 56 }}
+                            required
+                        />
+                    </Field>
+                    <p className={`mt-2 h-4 text-[12px] font-medium transition-colors ${confirm ? (matches ? "text-emerald-300/90" : "text-white/35") : "text-transparent"}`} aria-live="polite">
+                        {confirm ? (matches ? "Passwords match" : "Passwords don't match yet") : " "}
+                    </p>
+                </motion.div>
+
+                <AnimatePresence>{error && <ErrorDisplay key={error} error={error} />}</AnimatePresence>
+
+                <motion.div variants={rise} className="pt-2">
+                    {expired ? (
+                        <button
+                            type="button"
+                            onClick={() => onRestart("Your reset session expired. Send a new code to try again.")}
+                            className="w-full h-14 rounded-xl border border-white/15 bg-white/[0.04] text-white font-bold hover:bg-white/[0.08] transition-colors"
+                        >
+                            Request a new code
+                        </button>
+                    ) : (
+                        <PrimaryButton loading={saving} loadingText="Saving">
+                            Reset password
+                        </PrimaryButton>
+                    )}
+                </motion.div>
+            </form>
+
+            <motion.p variants={rise} className="text-center text-white/25 text-[12px] mt-6">
+                This page expires 15 minutes after the code was checked.
+            </motion.p>
+        </motion.div>
+    )
+}
+
 const CODE_LENGTH = 6
 const EMPTY_CODE = Array(CODE_LENGTH).fill("")
 
-/** Sign-up step 2: enter the 6-digit code that was emailed. */
-function OtpStep({ otp, setOtp, onVerified, onBack }) {
+/**
+ * Enter the 6-digit code that was emailed. Shared by sign-up and forgot password.
+ *
+ * @param {object} props
+ * @param {{ email: string, resendAt: number, notice?: string }} props.otp
+ * @param {(next: object) => void} props.setOtp
+ * @param {string} props.purpose       finishes "Enter it below to …"
+ * @param {string} props.submitLabel
+ * @param {(code: string) => Promise<void>} props.onSubmitCode  throws with the message to show when the code is wrong
+ * @param {(email: string) => Promise<{ message?: string, resendInSec?: number }>} props.onResend
+ * @param {string} props.backLabel
+ * @param {() => void} props.onBack
+ */
+function OtpStep({ otp, setOtp, purpose, submitLabel, onSubmitCode, onResend, backLabel, onBack }) {
     const [digits, setDigits] = useState(EMPTY_CODE)
     const [verifying, setVerifying] = useState(false)
     const [resending, setResending] = useState(false)
@@ -639,6 +1003,7 @@ function OtpStep({ otp, setOtp, onVerified, onBack }) {
     const [notice, setNotice] = useState(otp.notice || "")
     const [now, setNow] = useState(() => Date.now())
     const refs = useRef([])
+    const { panelVariants } = useMotionLevel()
 
     useEffect(() => {
         const id = setInterval(() => setNow(Date.now()), 1000)
@@ -663,9 +1028,7 @@ function OtpStep({ otp, setOtp, onVerified, onBack }) {
         setVerifying(true)
         setError("")
         try {
-            const res = await verifySignupOtp({ email: otp.email, code: value })
-            if (res?.success && res.data?.token) onVerified(res.data)
-            else setError(res?.message || "Could not verify the code")
+            await onSubmitCode(value)
         } catch (err) {
             setError(err.message || "Something went wrong")
             setNotice("")
@@ -714,7 +1077,7 @@ function OtpStep({ otp, setOtp, onVerified, onBack }) {
         setResending(true)
         setError("")
         try {
-            const res = await resendSignupOtp(otp.email)
+            const res = await onResend(otp.email)
             setOtp({ ...otp, resendAt: Date.now() + (res.resendInSec || 60) * 1000 })
             setNotice(res.message || "New code sent.")
             clearCode()
@@ -727,40 +1090,16 @@ function OtpStep({ otp, setOtp, onVerified, onBack }) {
     }
 
     return (
-        <motion.div custom={1} variants={panel} initial="hidden" animate="show" exit="exit">
-            <motion.button
-                variants={rise}
-                type="button"
-                onClick={onBack}
-                className="group mt-1 inline-flex items-center gap-1.5 text-sm text-white/45 hover:text-white/80 transition-colors"
-            >
-                <ArrowLeft className="w-4 h-4 transition-transform duration-300 group-hover:-translate-x-1" /> Edit details
-            </motion.button>
-
-            <div className="relative mt-6 w-14 h-14">
-                {/* soft ping behind the envelope while waiting for the code */}
-                <motion.span
-                    className="absolute inset-0 rounded-2xl border border-emerald-400/30"
-                    animate={{ scale: [1, 1.5], opacity: [0.6, 0] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeOut", delay: 0.8 }}
-                    aria-hidden="true"
-                />
-                <motion.div
-                    initial={{ rotateY: -180, scale: 0.6, opacity: 0 }}
-                    animate={{ rotateY: 0, scale: 1, opacity: 1 }}
-                    transition={{ type: "spring", stiffness: 160, damping: 14, delay: 0.05 }}
-                    style={{ transformPerspective: 500 }}
-                    className="relative w-14 h-14 rounded-2xl grid place-items-center border border-emerald-400/20 bg-emerald-500/10"
-                >
-                    <MailCheck className="w-7 h-7 text-emerald-300" />
-                </motion.div>
-            </div>
+        <motion.div custom={1} variants={panelVariants} initial="hidden" animate="show" exit="exit">
+            <BackLink onClick={onBack}>{backLabel}</BackLink>
+            {/* soft ping behind the envelope while waiting for the code */}
+            <StepIcon icon={MailCheck} ping />
 
             <div className="mt-2">
                 <AuthHeading lead="Check your" accent="email" />
             </div>
             <motion.p variants={rise} className="text-white/50 text-[15px] leading-relaxed mt-2 mb-7">
-                We sent a 6-digit code to <span className="text-white font-semibold break-all">{otp.email}</span>. Enter it below to finish creating your account.
+                We sent a 6-digit code to <span className="text-white font-semibold break-all">{otp.email}</span>. Enter it below to {purpose}.
             </motion.p>
 
             <form
@@ -814,25 +1153,12 @@ function OtpStep({ otp, setOtp, onVerified, onBack }) {
                 </motion.div>
 
                 <AnimatePresence mode="wait">
-                    {error ? (
-                        <ErrorDisplay key={`e-${error}`} error={error} />
-                    ) : notice ? (
-                        <motion.p
-                            key={`n-${notice}`}
-                            initial={{ opacity: 0, y: -4 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -4 }}
-                            className="text-emerald-300/90 text-sm text-center py-3 px-4 rounded-xl border border-emerald-400/15 bg-emerald-500/[0.06]"
-                            aria-live="polite"
-                        >
-                            {notice}
-                        </motion.p>
-                    ) : null}
+                    {error ? <ErrorDisplay key={`e-${error}`} error={error} /> : notice ? <NoticeDisplay key={`n-${notice}`} notice={notice} /> : null}
                 </AnimatePresence>
 
                 <motion.div variants={rise} className="pt-2">
                     <PrimaryButton loading={verifying} loadingText="Verifying" disabled={!complete}>
-                        Verify & create account
+                        {submitLabel}
                     </PrimaryButton>
                 </motion.div>
             </form>
