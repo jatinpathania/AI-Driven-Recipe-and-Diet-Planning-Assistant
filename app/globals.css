@@ -1695,3 +1695,20 @@ body {
   height: 36px;
   color: var(--g);
 }
+
+/* Recipe card while its dish photo is being looked up */
+.photo-shimmer {
+  background: linear-gradient(110deg, rgba(255,255,255,0.03) 30%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.03) 70%);
+  background-size: 250% 100%;
+  animation: photoShimmer 1.4s linear infinite;
+}
+
+@keyframes photoShimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -150% 0; }
+}
+
+html.low-power .photo-shimmer {
+  animation: none;
+  background: rgba(255,255,255,0.08);
+}
