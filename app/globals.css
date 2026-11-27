@@ -1254,6 +1254,47 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   LITE MOTION (phones and low-end devices)
+   <html> gets .lite-motion before first paint (lib/motion/liteScript.js).
+   What lags there: endless animations over big areas (the grid floor
+   repaints its background every frame), and backdrop blurs, which redo the
+   blur whenever anything behind them moves. Keep the look, drop the work.
+   ═══════════════════════════════════════════════════════════ */
+html.lite-motion .hero-glow,
+html.lite-motion .hero-grid-floor,
+html.lite-motion .hero-bg-emoji,
+html.lite-motion .hero-badge-dot,
+html.lite-motion .hero-orbit,
+html.lite-motion .cta-orbit span,
+html.lite-motion .footer-emoji,
+html.lite-motion .step-ring,
+html.lite-motion .cube-shadow {
+  animation: none !important;
+}
+
+/* Static now, so no need to hold GPU layers for them. */
+html.lite-motion .reveal-3d.is-static { will-change: auto; }
+
+/* Glass without the blur: a more solid fill keeps text readable. */
+html.lite-motion .site-header,
+html.lite-motion .landing-page .backdrop-blur-xl,
+html.lite-motion .modal-overlay,
+html.lite-motion .tag-on-media {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+html.lite-motion .site-header.is-scrolled { background-color: rgba(255, 255, 255, 0.96) !important; }
+html.lite-motion .modal-overlay { background: rgba(0, 0, 0, 0.62); }
+
+/* Sign in / sign up card (components/Auth/AuthPage.jsx). */
+html.lite-motion .auth-card {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background-color: rgba(0, 0, 0, 0.62) !important;
+}
+html.lite-motion .auth-sheen { display: none; }
+
+/* ═══════════════════════════════════════════════════════════
    MOTION PREFERENCES
    ═══════════════════════════════════════════════════════════ */
 @media (prefers-reduced-motion: reduce) {
@@ -1653,130 +1694,4 @@ body {
   width: 36px;
   height: 36px;
   color: var(--g);
-}
-
-
-/* ═══════════════════════════════════════════════════════════
-   PRINT
-   Rather than stripping the app's chrome rule by rule, the cook
-   page renders a dedicated .print-sheet that only exists on
-   paper. The visibility trick hides everything else without
-   needing a selector for each panel.
-   ═══════════════════════════════════════════════════════════ */
-.print-sheet {
-  display: none;
-}
-
-@page {
-  margin: 16mm;
-}
-
-@media print {
-  html,
-  body {
-    background: #fff;
-    height: auto;
-    overflow: visible;
-  }
-
-  /* Out of flow entirely, so the sheet starts at the true page edge. */
-  aside {
-    display: none;
-  }
-
-  body * {
-    visibility: hidden;
-  }
-
-  .print-sheet,
-  .print-sheet * {
-    visibility: visible;
-  }
-
-  .print-sheet {
-    display: block;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    color: #000;
-    font-family: Georgia, serif;
-  }
-
-  .print-title {
-    font-size: 26pt;
-    font-weight: 700;
-    margin: 0 0 4pt;
-  }
-
-  .print-meta {
-    font-size: 10pt;
-    color: #444;
-    margin: 0 0 18pt;
-    padding-bottom: 10pt;
-    border-bottom: 1px solid #bbb;
-  }
-
-  .print-h {
-    font-size: 11pt;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin: 0 0 8pt;
-  }
-
-  .print-cols {
-    display: grid;
-    grid-template-columns: 1fr 1.9fr;
-    gap: 26pt;
-    align-items: start;
-  }
-
-  .print-ingredients {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    font-size: 11pt;
-    line-height: 1.75;
-  }
-
-  .print-ingredients li {
-    break-inside: avoid;
-    padding-left: 12pt;
-    text-indent: -12pt;
-  }
-
-  .print-ingredients li::before {
-    content: "□  ";
-    color: #666;
-  }
-
-  .print-steps {
-    margin: 0;
-    padding-left: 16pt;
-    font-size: 11pt;
-    line-height: 1.75;
-  }
-
-  .print-steps li {
-    break-inside: avoid;
-    margin-bottom: 9pt;
-    padding-left: 4pt;
-  }
-
-  .print-step-time {
-    display: inline-block;
-    margin-left: 6pt;
-    font-size: 9pt;
-    font-weight: 700;
-    color: #555;
-  }
-
-  .print-foot {
-    margin-top: 22pt;
-    padding-top: 8pt;
-    border-top: 1px solid #ddd;
-    font-size: 8.5pt;
-    color: #777;
-  }
 }
