@@ -13,7 +13,6 @@ import { useToast } from '@/components/ui/Toaster'
 import { generateRecipe } from '@/utils/api'
 import { normalizeRecipe } from '@/lib/recipe/normalize'
 import { useGuestQuota, isGuestLimitError } from '@/lib/guestQuota'
-import { useRecipePhotos } from '@/lib/recipe/useRecipePhotos'
 
 const FILTERS = [
     { key: 'all', label: 'All' },
@@ -25,12 +24,30 @@ const FILTERS = [
 
 const GRADIENTS = ['from-emerald-400/30 to-teal-500/10', 'from-amber-400/30 to-orange-500/10', 'from-rose-400/30 to-pink-500/10', 'from-sky-400/30 to-indigo-500/10']
 
+/** Card photo that shimmers until the image has downloaded, then fades in. */
+function CardPhoto({ src }) {
+    const [loaded, setLoaded] = useState(false)
+    return (
+        <>
+            {!loaded && <span aria-hidden className="photo-shimmer absolute inset-0 block" />}
+            <Image
+                src={src}
+                alt=""
+                fill
+                sizes="(min-width:1280px) 260px, (min-width:768px) 30vw, 45vw"
+                onLoad={() => setLoaded(true)}
+                className={`object-cover transition-[opacity,transform] duration-700 group-hover:scale-110 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+                unoptimized={!src.includes('images.unsplash.com')}
+            />
+        </>
+    )
+}
+
 export default function RecipesPage() {
     const toast = useToast()
     const quota = useGuestQuota()
-    const { recipes, saveRecipe, deleteRecipe, updateRecipe, isFavourite, toggleFavourite, hydrated } = useKitchenData()
-    // Real dish photos for recipes that only have an emoji.
-    useRecipePhotos(recipes, updateRecipe, hydrated)
+    // photoPending: recipes whose dish photo is being looked up right now (KitchenDataProvider).
+    const { recipes, saveRecipe, deleteRecipe, isFavourite, toggleFavourite, hydrated, photoPending } = useKitchenData()
 
     const [query, setQuery] = useState('')
     const [filter, setFilter] = useState('all')
@@ -161,7 +178,10 @@ export default function RecipesPage() {
                                                 <div className="group flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-[var(--shadow-card)] transition-colors hover:border-[var(--brand)]">
                                                     <div className={`relative aspect-[4/3] overflow-hidden bg-gradient-to-br ${GRADIENTS[i % GRADIENTS.length]}`}>
                                                         {r.image ? (
-                                                            <Image src={r.image} alt="" fill sizes="(min-width:1280px) 260px, (min-width:768px) 30vw, 45vw" className="object-cover transition-transform duration-700 group-hover:scale-110" unoptimized={!r.image.includes('images.unsplash.com')} />
+                                                            <CardPhoto src={r.image} />
+                                                        ) : photoPending?.has(r.key) ? (
+                                                            // Photo on its way: a soft shimmer reads as loading, the emoji would read as final.
+                                                            <span aria-label="Loading photo" className="photo-shimmer absolute inset-0 block" />
                                                         ) : (
                                                             <span className="grid h-full place-items-center text-6xl drop-shadow-lg transition-transform duration-500 group-hover:scale-110">{r.emoji}</span>
                                                         )}
