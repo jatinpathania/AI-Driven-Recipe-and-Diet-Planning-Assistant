@@ -189,10 +189,17 @@ export default function SidebarContent() {
                         whileHover={{ rotateY: 180 }}
                         transition={{ type: 'spring', stiffness: 200, damping: 14 }}
                         style={{ transformPerspective: 400 }}
-                        className="relative grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 shadow-lg shadow-emerald-500/20"
+                        className="relative grid h-10 w-10 place-items-center"
                     >
-                        <Image src="/icon.png" alt="" width={24} height={24} />
-                        <span className="absolute -right-0.5 -top-0.5"><span className="k-live block" /></span>
+                        <Image
+                            src="/icon.png"
+                            alt="Flavour AI"
+                            width={40}
+                            height={40}
+                            priority
+                            className="h-10 w-10 object-contain drop-shadow-[0_0_6px_rgba(16,185,129,0.45)] transition-[filter] duration-300 group-hover:drop-shadow-[0_0_10px_rgba(16,185,129,0.7)]"
+                        />
+                        <span className="absolute right-0.5 top-1"><span className="k-live block" /></span>
                     </motion.div>
                     <span className="leading-none">
                         <span className="block text-[18px] font-extrabold tracking-tight text-[var(--text-main)] transition-colors group-hover:text-[var(--brand)]">
