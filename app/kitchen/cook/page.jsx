@@ -4,7 +4,7 @@ import React, { useEffect, useEffectEvent, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-    ArrowLeft, ArrowRight, Check, Play, Pause, Utensils, ChefHat, Minus, Plus, Timer as TimerIcon, Printer, Lightbulb, X, RotateCcw, Clock, Lock,
+    ArrowLeft, ArrowRight, Check, Play, Pause, Utensils, ChefHat, Minus, Plus, Timer as TimerIcon, Lightbulb, X, RotateCcw, Clock, Lock,
 } from 'lucide-react'
 import MobileMenuButton from '@/components/Layout/MobileMenuButton'
 import ProgressRing from '@/components/ui/ProgressRing'
@@ -280,9 +280,6 @@ export default function CookPage() {
             >
                 <TimerIcon className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Auto timers</span> {autoTimers ? 'on' : 'off'}
             </button>
-            <button type="button" onClick={() => window.print()} aria-label="Print recipe" className="rounded-xl border border-[var(--border-light)] p-2 text-[var(--text-muted)] hover:text-[var(--text-main)]">
-                <Printer className="h-4 w-4" />
-            </button>
             {cooking && (
                 <button type="button" onClick={finish} className="rounded-xl bg-[var(--brand)] px-4 py-2 text-sm font-bold text-black shadow-md shadow-emerald-500/20 hover:bg-[var(--brand-hover)]">
                     Finish
@@ -309,8 +306,6 @@ export default function CookPage() {
             subtitle={cooking ? `Step ${current + 1}/${steps.length} · ${formatClock(elapsed)}` : `${steps.length} steps${recipe.time ? ` · ${recipe.time}` : ''}`}
             actions={headerActions}
         >
-            <PrintSheet recipe={recipe} ingredients={ingredients} servings={servings} units={settings.units} />
-
             {!cooking ? (
                 /* ── Overview ── */
                 <div className="flex-1 overflow-y-auto hide-scrollbar">
@@ -618,37 +613,5 @@ function Shell({ title, subtitle, actions, children }) {
             </header>
             {children}
         </div>
-    )
-}
-
-function PrintSheet({ recipe, ingredients, servings, units }) {
-    return (
-        <section className="print-sheet" aria-hidden="true">
-            <h1 className="print-title">{recipe.name}</h1>
-            <p className="print-meta">
-                {[`${servings} ${servings === 1 ? 'serving' : 'servings'}`, recipe.time, recipe.calories ? `${recipe.calories} kcal` : null, recipe.difficulty].filter(Boolean).join('  ·  ')}
-            </p>
-            <div className="print-cols">
-                <div>
-                    <h2 className="print-h">Ingredients</h2>
-                    <ul className="print-ingredients">{ingredients.map((l, i) => <li key={i}>{l}</li>)}</ul>
-                </div>
-                <div>
-                    <h2 className="print-h">Method</h2>
-                    <ol className="print-steps">
-                        {recipe.steps.map((step, i) => {
-                            const d = parseDurations(step)
-                            return (
-                                <li key={i}>
-                                    {stepText(step)}
-                                    {d.length > 0 && <span className="print-step-time">[{d.map((x) => x.label).join(' + ')}]</span>}
-                                </li>
-                            )
-                        })}
-                    </ol>
-                </div>
-            </div>
-            <p className="print-foot">Flavour.AI — scaled for {servings}, {units === 'metric' ? 'metric' : 'imperial'} measures.</p>
-        </section>
     )
 }
