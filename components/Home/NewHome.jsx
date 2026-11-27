@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, MotionConfig } from 'framer-motion'
+import { isLowPower } from '@/lib/motion/lite'
 import { useSession, signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -57,6 +58,9 @@ const Home = () => {
     const { data: session } = useSession()
     const router = useRouter()
     const reduceMotion = useReducedMotionAfterMount()
+    // Low-end devices: entrances only fade, no flips or slides. Read once from
+    // <html>; it changes no markup, so the server's "false" is harmless.
+    const [lowPower] = useState(isLowPower)
 
     const [clientLoggedIn, setClientLoggedIn] = useState(null)
     const [isSignupOpen, setIsSignupOpen] = useState(false)
@@ -121,6 +125,7 @@ const Home = () => {
     }
 
     return (
+        <MotionConfig reducedMotion={lowPower ? 'always' : 'user'}>
         <div className="landing-page">
             <Header overlay />
 
@@ -363,6 +368,7 @@ const Home = () => {
                 )}
             </AnimatePresence>
         </div>
+        </MotionConfig>
     )
 }
 
