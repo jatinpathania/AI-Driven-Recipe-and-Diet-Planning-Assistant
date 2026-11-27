@@ -124,6 +124,14 @@ const runMigrations = () => {
         writeJSON(KEYS.recipes, SAMPLE_RECIPES.map(({ diet, ...r }) => r))
     }
 
+    // Kitchens seeded before the sample recipes had photos keep their emoji
+    // forever; give those samples their photo.
+    const samplePhotos = new Map(SAMPLE_RECIPES.filter((s) => s.image).map((s) => [recipeKey(s.name), s.image]))
+    const saved = readJSON(KEYS.recipes, null)
+    if (Array.isArray(saved) && saved.some((r) => r && !r.image && samplePhotos.has(recipeKey(r.name)))) {
+        writeJSON(KEYS.recipes, saved.map((r) => (r && !r.image && samplePhotos.has(recipeKey(r.name)) ? { ...r, image: samplePhotos.get(recipeKey(r.name)) } : r)))
+    }
+
     // The calorie page owned the goal before settings existed.
     const storedSettings = readJSON(KEYS.settings, null)
     const legacyGoal = parseInt(window.localStorage.getItem(KEYS.calorieGoal) || '', 10)
