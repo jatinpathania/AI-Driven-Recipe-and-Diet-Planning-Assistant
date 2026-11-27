@@ -1,6 +1,7 @@
 import "./globals.css"
 import { Inter, Plus_Jakarta_Sans } from "next/font/google"
 import Providers from "./providers"
+import { LITE_MOTION_SCRIPT } from "@/lib/motion/liteScript"
 
 const inter = Inter({
     subsets: ["latin"],
@@ -30,6 +31,8 @@ export default function RootLayout({ children }) {
     return (
         <html lang="en" suppressHydrationWarning>
             <head>
+                {/* Tag phones and low-end devices before paint so heavy effects never start there. */}
+                <script dangerouslySetInnerHTML={{ __html: LITE_MOTION_SCRIPT }} />
                 <script dangerouslySetInnerHTML={{__html: `
                     (function() {
                         try {
