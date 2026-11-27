@@ -12,22 +12,24 @@ import {
     useInView,
 } from 'framer-motion'
 import { MessageSquare, Timer, Flame, CalendarDays, NotebookPen, UtensilsCrossed, Leaf, Wand2, ChefHat } from 'lucide-react'
+import { isLiteMotion } from '@/lib/motion/lite'
 
 /* ────────────────────────────────────────────────────────────
    Everything here is CSS 3D (perspective + preserve-3d) driven
    by framer-motion values — no WebGL, no extra dependencies.
    Pointer and frame updates write to motion values, never to
    React state, so nothing re-renders while things move. Every
-   effect degrades to a static layout under reduced motion or a
-   coarse pointer.
+   effect degrades to a static layout under reduced motion, on
+   phones and on low-end devices (lib/motion/lite.js).
    ──────────────────────────────────────────────────────────── */
 
 /**
- * useReducedMotion, but safe to branch the DOM on.
+ * True when the 3D effects should stay off: "reduce motion" is on, or the
+ * device is a phone/tablet or low-end (the lite-motion class on <html>).
  *
- * The raw hook reports the real preference on the very first client render
- * while the server rendered the animated markup, so returning a different tree
- * straight away is a hydration mismatch. Report "false" until after mount.
+ * Safe to branch the DOM on: the server rendered the animated markup, so
+ * returning a different tree on the first client render would be a hydration
+ * mismatch. Reports "false" until after mount.
  */
 export const useReducedMotionAfterMount = () => {
     const reduce = useReducedMotion()
@@ -38,7 +40,7 @@ export const useReducedMotionAfterMount = () => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => setMounted(true), [])
 
-    return mounted && reduce
+    return mounted && (reduce || isLiteMotion())
 }
 
 const useMediaQuery = (query) => {
@@ -216,26 +218,10 @@ const AUTO_SPEED = 0.014 // degrees per ms
 
 export function FeatureCube() {
     const reduce = useReducedMotionAfterMount()
-    const sceneRef = useRef(null)
-    const inView = useInView(sceneRef)
-    const rotY = useMotionValue(0)
-    const rotX = useMotionValue(REST_TILT)
-    const dragging = useRef(false)
-    const boost = useRef(0)
-    const [grabbing, setGrabbing] = useState(false)
-
-    useAnimationFrame((_, delta) => {
-        if (reduce || !inView || dragging.current) return
-        const dt = Math.min(delta, 50)
-        rotY.set(rotY.get() + (AUTO_SPEED + boost.current) * dt)
-        boost.current *= 0.95
-        // Ease the tilt back to its resting angle after a vertical drag.
-        rotX.set(rotX.get() + (REST_TILT - rotX.get()) * 0.05)
-    })
 
     if (reduce) {
         return (
-            <div className="cube-fallback" ref={sceneRef}>
+            <div className="cube-fallback">
                 {FACES.map(({ Icon, label }) => (
                     <div key={label} className="cube-fallback-item">
                         <Icon className="cube-fallback-icon" aria-hidden="true" />
@@ -245,6 +231,28 @@ export function FeatureCube() {
             </div>
         )
     }
+
+    return <SpinningCube />
+}
+
+// Its own component so the frame loop only exists while the cube is shown.
+function SpinningCube() {
+    const sceneRef = useRef(null)
+    const inView = useInView(sceneRef)
+    const rotY = useMotionValue(0)
+    const rotX = useMotionValue(REST_TILT)
+    const dragging = useRef(false)
+    const boost = useRef(0)
+    const [grabbing, setGrabbing] = useState(false)
+
+    useAnimationFrame((_, delta) => {
+        if (!inView || dragging.current) return
+        const dt = Math.min(delta, 50)
+        rotY.set(rotY.get() + (AUTO_SPEED + boost.current) * dt)
+        boost.current *= 0.95
+        // Ease the tilt back to its resting angle after a vertical drag.
+        rotX.set(rotX.get() + (REST_TILT - rotX.get()) * 0.05)
+    })
 
     return (
         <div className="cube-stage">
@@ -289,15 +297,22 @@ export function FeatureCube() {
 }
 
 /* ── Scroll-linked parallax ───────────────────────────────── */
+// The scroll-linked versions live in their own components, so where motion is
+// off there are no scroll listeners or springs running at all.
 export function ParallaxDepth({ children, speed = 60, className = '' }) {
-    const ref = useRef(null)
     const reduce = useReducedMotionAfterMount()
+    if (reduce) return <div className={className}>{children}</div>
+    return <ParallaxDepthMotion speed={speed} className={className}>{children}</ParallaxDepthMotion>
+}
+
+function ParallaxDepthMotion({ children, speed, className }) {
+    const ref = useRef(null)
     const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] })
     const y = useSpring(useTransform(scrollYProgress, [0, 1], [speed, -speed]), { stiffness: 120, damping: 28, mass: 0.4 })
 
     return (
         <div ref={ref} className={className}>
-            <motion.div style={reduce ? undefined : { y }}>{children}</motion.div>
+            <motion.div style={{ y }}>{children}</motion.div>
         </div>
     )
 }
@@ -308,8 +323,13 @@ export function ParallaxDepth({ children, speed = 60, className = '' }) {
  * one-shot timer, so scrolling back up plays it in reverse.
  */
 export function Reveal3D({ children, className = '', tilt = 24, depth = 180 }) {
-    const ref = useRef(null)
     const reduce = useReducedMotionAfterMount()
+    if (reduce) return <div className={`reveal-3d is-static ${className}`}>{children}</div>
+    return <Reveal3DMotion className={className} tilt={tilt} depth={depth}>{children}</Reveal3DMotion>
+}
+
+function Reveal3DMotion({ children, className, tilt, depth }) {
+    const ref = useRef(null)
     const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'start 58%'] })
     const smooth = useSpring(scrollYProgress, { stiffness: 140, damping: 26, mass: 0.35 })
     const rotateX = useTransform(smooth, [0, 1], [tilt, 0])
@@ -320,7 +340,7 @@ export function Reveal3D({ children, className = '', tilt = 24, depth = 180 }) {
         <motion.div
             ref={ref}
             className={`reveal-3d ${className}`}
-            style={reduce ? undefined : { rotateX, z, opacity, transformPerspective: 1200 }}
+            style={{ rotateX, z, opacity, transformPerspective: 1200 }}
         >
             {children}
         </motion.div>
@@ -413,38 +433,14 @@ function RingItem({ index, count, radius, rotation, children }) {
 }
 
 export function CarouselRing({ items, renderItem, radius = 330, label }) {
-    const wrapRef = useRef(null)
-    const inView = useInView(wrapRef)
     const fine = useFinePointer()
     const reduce = useReducedMotionAfterMount()
     const active = fine && !reduce
 
-    const rotation = useMotionValue(0)
-    const paused = useRef(false)
-
-    useAnimationFrame((_, delta) => {
-        if (!active || !inView || paused.current) return
-        rotation.set(rotation.get() - Math.min(delta, 50) * 0.011)
-    })
-
     return (
-        <div ref={wrapRef} className="ring-wrap" aria-label={label} role="region">
+        <div className="ring-wrap" aria-label={label} role="region">
             {active ? (
-                <motion.div
-                    className="ring-scene"
-                    onPointerEnter={() => { paused.current = true }}
-                    onPointerLeave={() => { paused.current = false }}
-                    onPan={(_, info) => rotation.set(rotation.get() + info.delta.x * 0.35)}
-                >
-                    <motion.div className="testi-ring" style={{ rotateY: rotation }}>
-                        {items.map((item, i) => (
-                            <RingItem key={i} index={i} count={items.length} radius={radius} rotation={rotation}>
-                                {renderItem(item)}
-                            </RingItem>
-                        ))}
-                    </motion.div>
-                    <div className="ring-floor" aria-hidden="true" />
-                </motion.div>
+                <RingScene items={items} renderItem={renderItem} radius={radius} />
             ) : (
                 <div className="ring-fallback">
                     {items.map((item, i) => (
@@ -453,5 +449,37 @@ export function CarouselRing({ items, renderItem, radius = 330, label }) {
                 </div>
             )}
         </div>
+    )
+}
+
+// Its own component so the frame loop only exists while the ring is shown.
+function RingScene({ items, renderItem, radius }) {
+    const sceneRef = useRef(null)
+    const inView = useInView(sceneRef)
+    const rotation = useMotionValue(0)
+    const paused = useRef(false)
+
+    useAnimationFrame((_, delta) => {
+        if (!inView || paused.current) return
+        rotation.set(rotation.get() - Math.min(delta, 50) * 0.011)
+    })
+
+    return (
+        <motion.div
+            ref={sceneRef}
+            className="ring-scene"
+            onPointerEnter={() => { paused.current = true }}
+            onPointerLeave={() => { paused.current = false }}
+            onPan={(_, info) => rotation.set(rotation.get() + info.delta.x * 0.35)}
+        >
+            <motion.div className="testi-ring" style={{ rotateY: rotation }}>
+                {items.map((item, i) => (
+                    <RingItem key={i} index={i} count={items.length} radius={radius} rotation={rotation}>
+                        {renderItem(item)}
+                    </RingItem>
+                ))}
+            </motion.div>
+            <div className="ring-floor" aria-hidden="true" />
+        </motion.div>
     )
 }
