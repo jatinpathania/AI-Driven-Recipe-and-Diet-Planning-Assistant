@@ -1,19 +1,20 @@
 import { NextResponse } from 'next/server'
 import connectDB from '@/lib/db/connectDB'
 import RecipePhoto from '@/lib/models/RecipePhoto'
-import { cleanDishName, dishKey, findDishPhoto, photosConfigured } from '@/lib/recipe/photoSearch'
+import { cleanDishName, dishKey, findDishPhoto } from '@/lib/recipe/photoSearch'
 
 /**
  * GET /api/recipes/photo?name=Potato%20Curry
  *
- * A real photo for a dish, found once with Google Images (lib/recipe/photoSearch.js),
- * copied to Cloudinary and remembered for every later request of the same dish.
+ * A real photo for a dish, found once on Wikimedia Commons / Openverse
+ * (lib/recipe/photoSearch.js, no API key), copied to Cloudinary and
+ * remembered for every later request of the same dish.
  *
  * → 200 { success: true, url }                 found (or already known)
- * → 200 { success: true, url: null, reason }   reason: NOT_FOUND, NOT_CONFIGURED, DAILY_LIMIT
+ * → 200 { success: true, url: null, reason }   reason: NOT_FOUND, DAILY_LIMIT
  *
  * Open to guests too (their recipes live in the browser), so new searches are
- * capped per day to protect the search credits; cached dishes are never capped.
+ * capped per day to go easy on the free APIs; cached dishes are never capped.
  */
 
 const DAILY_NEW_SEARCHES = 150
@@ -39,8 +40,6 @@ export async function GET(request) {
             return ok({ url: null, reason: 'NOT_FOUND' })
         }
 
-        if (!photosConfigured()) return ok({ url: null, reason: 'NOT_CONFIGURED' })
-
         const startOfDay = new Date()
         startOfDay.setUTCHours(0, 0, 0, 0)
         if ((await RecipePhoto.countDocuments({ searchedAt: { $gte: startOfDay } })) >= DAILY_NEW_SEARCHES) {
@@ -58,6 +57,8 @@ export async function GET(request) {
                     publicId: photo?.publicId || null,
                     sourceUrl: photo?.sourceUrl || null,
                     sourceDomain: photo?.sourceDomain || null,
+                    license: photo?.license || null,
+                    creator: photo?.creator || null,
                     searchedAt: new Date(),
                 },
             },
@@ -66,11 +67,7 @@ export async function GET(request) {
 
         return photo ? ok({ url: photo.url }, 86400) : ok({ url: null, reason: 'NOT_FOUND' })
     } catch (error) {
-        // A bad key or exhausted credits: say so once in the log, and let the card keep its emoji.
-        if (error?.status === 401 || error?.status === 403) {
-            console.error('Recipe photo search refused: check SERPER_API_KEY and its remaining credits.')
-            return ok({ url: null, reason: 'NOT_CONFIGURED' })
-        }
+        // Searches unreachable: not cached, so the next visit tries again.
         console.error('Recipe photo error:', error?.message || error)
         return NextResponse.json({ success: false, message: 'Could not find a photo right now' }, { status: 502 })
     }
