@@ -13,6 +13,7 @@ import { useToast } from '@/components/ui/Toaster'
 import { generateRecipe } from '@/utils/api'
 import { normalizeRecipe } from '@/lib/recipe/normalize'
 import { useGuestQuota, isGuestLimitError } from '@/lib/guestQuota'
+import { useRecipePhotos } from '@/lib/recipe/useRecipePhotos'
 
 const FILTERS = [
     { key: 'all', label: 'All' },
@@ -27,7 +28,9 @@ const GRADIENTS = ['from-emerald-400/30 to-teal-500/10', 'from-amber-400/30 to-o
 export default function RecipesPage() {
     const toast = useToast()
     const quota = useGuestQuota()
-    const { recipes, saveRecipe, deleteRecipe, isFavourite, toggleFavourite, hydrated } = useKitchenData()
+    const { recipes, saveRecipe, deleteRecipe, updateRecipe, isFavourite, toggleFavourite, hydrated } = useKitchenData()
+    // Real dish photos for recipes that only have an emoji.
+    useRecipePhotos(recipes, updateRecipe, hydrated)
 
     const [query, setQuery] = useState('')
     const [filter, setFilter] = useState('all')
