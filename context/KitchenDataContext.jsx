@@ -231,6 +231,16 @@ export const KitchenDataProvider = ({ children }) => {
         updateJSON(KEYS.recipes, EMPTY_ARR, (list) => asArray(list).filter((r) => r.id !== id))
     }, [])
 
+    /**
+     * Merge `patch` into the saved recipe with this name key (e.g. { image }).
+     * Matched by key, not id: seeded sample recipes are stored without an id.
+     */
+    const updateRecipe = useCallback((key, patch) => {
+        updateJSON(KEYS.recipes, EMPTY_ARR, (list) =>
+            asArray(list).map((r) => ((r.key || recipeKey(r)) === key ? { ...r, ...patch } : r))
+        )
+    }, [])
+
     const findRecipe = useCallback(
         (nameOrKey) => {
             const k = recipeKey(nameOrKey)
@@ -548,7 +558,7 @@ export const KitchenDataProvider = ({ children }) => {
     const value = useMemo(
         () => ({
             hydrated, today,
-            recipes, saveRecipe, deleteRecipe, findRecipe,
+            recipes, saveRecipe, deleteRecipe, updateRecipe, findRecipe,
             favourites, isFavourite, toggleFavourite,
             shopping, addShoppingItems, toggleShoppingItem, removeShoppingItem, clearCheckedShopping, clearShopping,
             settings, updateSettings,
@@ -559,7 +569,7 @@ export const KitchenDataProvider = ({ children }) => {
             resetKitchen,
         }),
         [
-            hydrated, today, recipes, saveRecipe, deleteRecipe, findRecipe,
+            hydrated, today, recipes, saveRecipe, deleteRecipe, updateRecipe, findRecipe,
             favourites, isFavourite, toggleFavourite,
             shopping, addShoppingItems, toggleShoppingItem, removeShoppingItem, clearCheckedShopping, clearShopping,
             settings, updateSettings,
